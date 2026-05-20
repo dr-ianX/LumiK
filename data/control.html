@@ -1325,6 +1325,7 @@
       // Create new audio element
       audioElement = new Audio();
       audioElement.src = URL.createObjectURL(file);
+      audioElement.volume = 0; // Muted - audio plays but no sound in control.html
       
       document.getElementById('nowPlaying').textContent = '🎵 ' + file.name;
       statusDiv.textContent = "Archivo cargado: " + file.name;
