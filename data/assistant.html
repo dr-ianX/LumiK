@@ -699,7 +699,7 @@
         ws.onopen = () => {
           statusDiv.textContent = "Conectado";
           statusDiv.style.color = "#0f0";
-          requestFullscreen();
+          // Don't auto-request fullscreen - let user click the button
           keepScreenAwake();
         };
         
