@@ -8,7 +8,11 @@ from aiohttp import web, WSMsgType
 # Configuration - OnRender compatible
 PORT = int(os.environ.get("PORT", 3001))
 DATA_DIR = Path("data")
+UPLOADS_DIR = DATA_DIR / "uploads"
 HOST = "0.0.0.0"  # Listen on all interfaces for OnRender
+
+# Create uploads directory if it doesn't exist
+UPLOADS_DIR.mkdir(exist_ok=True)
 
 # WebSocket connections
 connected_clients = set()
@@ -39,8 +43,43 @@ async def handle_websocket(request):
     
     return ws
 
+async def handle_upload(request):
+    if request.method == 'POST':
+        reader = await request.multipart()
+        
+        async for field in reader:
+            if field.name == 'audio':
+                filename = field.filename
+                if not filename:
+                    return web.Response(status=400, text="No filename provided")
+                
+                # Generate unique filename
+                import uuid
+                unique_filename = f"{uuid.uuid4()}_{filename}"
+                file_path = UPLOADS_DIR / unique_filename
+                
+                # Save file
+                with open(file_path, 'wb') as f:
+                    while True:
+                        chunk = await field.read_chunk()
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                
+                # Return the URL to access the file
+                file_url = f"/uploads/{unique_filename}"
+                return web.json_response({'url': file_url})
+        
+        return web.Response(status=400, text="No audio file provided")
+    
+    return web.Response(status=405, text="Method not allowed")
+
 async def handle_request(request):
     path = request.path
+    
+    # Handle upload endpoint
+    if path == "/upload":
+        return await handle_upload(request)
     
     # Determine which file to serve
     if path == "/":
@@ -51,6 +90,8 @@ async def handle_request(request):
         file_path = DATA_DIR / "chat.html"
     elif path == "/favicon.ico":
         file_path = DATA_DIR / "favicon.ico"
+    elif path.startswith("/uploads/"):
+        file_path = UPLOADS_DIR / path.lstrip("/uploads/")
     else:
         file_path = DATA_DIR / path.lstrip("/")
     
@@ -71,6 +112,8 @@ async def handle_request(request):
             content_type = 'application/javascript'
         elif file_path.suffix == '.ico':
             content_type = 'image/x-icon'
+        elif file_path.suffix in ['.mp3', '.wav', '.ogg', '.m4a']:
+            content_type = 'audio/mpeg'
         
         response = web.Response(body=content, content_type=content_type)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'

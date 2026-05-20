@@ -288,6 +288,10 @@
     let musicVisualizerCtx = null;
     let musicVisualizerAnimationId = null;
     let receivedAudioData = null;
+    let assistantAudioElement = null;
+    let assistantAudioContext = null;
+    let assistantAnalyser = null;
+    let assistantAudioSource = null;
     
     // Chat Variables
     const chatLayer = document.getElementById('chat-layer');
@@ -369,6 +373,50 @@
     function addChatMessage(username, message) {
       chatMessages.push({ username, message, timestamp: Date.now() });
       createChatBubble(message, username);
+    }
+    
+    // Función para reproducir audio desde URL
+    function playAudioFromUrl(url) {
+      // Clean up previous audio
+      if (assistantAudioElement) {
+        assistantAudioElement.pause();
+        assistantAudioElement = null;
+      }
+      
+      // Create new audio element
+      assistantAudioElement = new Audio();
+      assistantAudioElement.src = url;
+      assistantAudioElement.volume = 1; // Full volume in assistant.html
+      
+      // Initialize audio context for visualizer
+      assistantAudioElement.addEventListener('play', () => {
+        if (!assistantAudioContext) {
+          assistantAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+          assistantAnalyser = assistantAudioContext.createAnalyser();
+          assistantAnalyser.fftSize = 256;
+          assistantAudioSource = assistantAudioContext.createMediaElementSource(assistantAudioElement);
+          assistantAudioSource.connect(assistantAnalyser);
+          assistantAnalyser.connect(assistantAudioContext.destination);
+        }
+        
+        if (!musicVisualizerAnimationId) {
+          startMusicVisualizer();
+        }
+      });
+      
+      // Update visualizer data
+      assistantAudioElement.addEventListener('timeupdate', () => {
+        if (assistantAnalyser && musicVisualizerCtx) {
+          const dataArray = new Uint8Array(assistantAnalyser.frequencyBinCount);
+          assistantAnalyser.getByteFrequencyData(dataArray);
+          receivedAudioData = dataArray;
+        }
+      });
+      
+      // Auto-play
+      assistantAudioElement.play().catch(e => {
+        console.error('Error playing audio:', e);
+      });
     }
     
     // Función para mantener pantalla activa
@@ -530,11 +578,19 @@
             stopVibration();
           }
           else if(msg.startsWith('AUDIO_DATA:')) {
-            const audioData = JSON.parse(msg.substring(10));
-            receivedAudioData = new Uint8Array(audioData);
-            if (!musicVisualizerAnimationId) {
-              startMusicVisualizer();
+            try {
+              const audioData = JSON.parse(msg.substring(10));
+              receivedAudioData = new Uint8Array(audioData);
+              if (!musicVisualizerAnimationId) {
+                startMusicVisualizer();
+              }
+            } catch(e) {
+              console.error('Error parsing AUDIO_DATA:', e, msg);
             }
+          }
+          else if(msg.startsWith('AUDIO_URL:')) {
+            const audioUrl = msg.substring(10);
+            playAudioFromUrl(audioUrl);
           }
           else if(msg.startsWith('CHAT:')) {
             const data = msg.substring(5).split('|');

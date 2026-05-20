@@ -1316,22 +1316,44 @@
       const file = event.target.files[0];
       if (!file) return;
       
-      // Clean up previous audio
-      if (audioElement) {
-        audioElement.pause();
-        audioElement = null;
-      }
+      // Upload file to server
+      const formData = new FormData();
+      formData.append('audio', file);
       
-      // Create new audio element
-      audioElement = new Audio();
-      audioElement.src = URL.createObjectURL(file);
-      audioElement.volume = 0; // Muted - audio plays but no sound in control.html
-      
-      document.getElementById('nowPlaying').textContent = '🎵 ' + file.name;
-      statusDiv.textContent = "Archivo cargado: " + file.name;
-      
-      // Initialize audio context on user interaction
-      audioElement.addEventListener('play', initMusicVisualizer);
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.url) {
+          // Clean up previous audio
+          if (audioElement) {
+            audioElement.pause();
+            audioElement = null;
+          }
+          
+          // Create new audio element with server URL
+          audioElement = new Audio();
+          audioElement.src = data.url;
+          audioElement.volume = 0; // Muted - audio plays but no sound in control.html
+          
+          document.getElementById('nowPlaying').textContent = '🎵 ' + file.name;
+          statusDiv.textContent = "Archivo cargado: " + file.name;
+          
+          // Send URL to assistant.html via WebSocket
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('AUDIO_URL:' + data.url);
+          }
+          
+          // Initialize audio context on user interaction
+          audioElement.addEventListener('play', initMusicVisualizer);
+        }
+      })
+      .catch(error => {
+        console.error('Error uploading file:', error);
+        statusDiv.textContent = "Error subiendo archivo";
+      });
     }
     
     function playMusic() {
