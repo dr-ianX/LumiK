@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LumiK</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    :root {
+      --primary: #0ff;
+      --secondary: #f0f;
+      --dark: #111;
+      --panel-bg: rgba(30, 30, 40, 0.9);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--dark); color:#fff; font-family:'Segoe UI', Tahoma, sans-serif; padding:15px; min-height:100vh; }
+    h1 { text-align:center; color:var(--primary); text-shadow:0 0 15px var(--primary); margin:10px 0 25px; font-size:1.8rem; letter-spacing:1px; }
+    .panel { display:grid; grid-template-columns:1fr 1fr; gap:15px; max-width:900px; margin:0 auto; }
+    .section { background:var(--panel-bg); border:1px solid rgba(0, 200, 255, 0.3); border-radius:15px; padding:18px; box-shadow:0 5px 20px rgba(0,0,0,0.4), 0 0 15px rgba(0,200,255,0.2); backdrop-filter:blur(5px); }
+    .section-title { color:var(--primary); margin:0 0 18px; font-size:1.3rem; text-align:center; font-weight:600; text-transform:uppercase; letter-spacing:1px; }
+    .slider-container { margin:12px 0; }
+    .slider { width:100%; height:25px; -webkit-appearance:none; appearance:none; background:linear-gradient(90deg, #333, #555); border-radius:12px; outline:none; }
+    .slider::-webkit-slider-thumb { -webkit-appearance:none; width:28px; height:28px; border-radius:50%; background:var(--primary); cursor:pointer; box-shadow:0 0 10px var(--primary); }
+    label { display:block; font-size:0.95rem; margin-bottom:8px; color:#ccc; font-weight:500; }
+    .value-display { display:inline-block; width:35px; text-align:center; font-weight:bold; color:var(--primary); margin-left:10px; }
+    #preview { width:100%; height:130px; background:#222; margin:15px 0; border:2px solid var(--primary); border-radius:12px; transition:all 0.4s; box-shadow:0 0 20px rgba(0,200,255,0.3); position:relative; overflow:hidden; }
+    #preview-canvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+    button { padding:14px; background:linear-gradient(135deg, var(--primary), #00aaff); color:#000; border:none; border-radius:10px; font-size:1.05rem; font-weight:bold; cursor:pointer; transition:all 0.3s; width:100%; text-transform:uppercase; letter-spacing:1px; box-shadow:0 5px 15px rgba(0,200,255,0.3); }
+    button:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,200,255,0.5); }
+    .effects-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px; }
+    .effect-btn { padding:12px; background:rgba(50, 50, 70, 0.7); color:#fff; border:1px solid rgba(100, 200, 255, 0.3); border-radius:10px; cursor:pointer; transition:all 0.3s; text-align:center; font-size:0.95rem; font-weight:500; }
+    .effect-btn:hover { background:rgba(100, 200, 255, 0.2); border-color:var(--primary); transform:translateY(-2px); }
+    .active { background:linear-gradient(135deg, var(--primary), #00aaff) !important; color:#000 !important; border-color:var(--primary) !important; box-shadow:0 0 15px var(--primary); }
+    #textInput { width:100%; padding:14px; background:rgba(40, 40, 50, 0.7); color:#fff; border:1px solid rgba(100, 200, 255, 0.3); border-radius:10px; margin:12px 0; font-size:1.05rem; }
+    .bpm-control { display:flex; align-items:center; gap:10px; margin:18px 0; }
+    .bpm-value { width:40px; height:40px; background:var(--primary); color:#000; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 0 10px var(--primary); }
+    .status { text-align:center; margin-top:20px; color:#0f0; font-size:1rem; font-weight:500; }
+    .status.error { color:#ff5555; }
+    .text-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    .text-slider { width:100%; }
+    .bpm-input { width:100%; padding:10px; background:rgba(40, 40, 50, 0.7); color:#fff; border:1px solid rgba(100, 200, 255, 0.3); border-radius:8px; text-align:center; font-size:1.2rem; }
+    .speed-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .speed-panel { background: rgba(40,40,60,0.7); padding: 10px; border-radius: 10px; }
+    .buzzer-btn { background: linear-gradient(135deg, #ff5500, #ff0000) !important; }
+    .glowcrowd-logo { text-align:center; margin-bottom:20px; }
+    .glowcrowd-logo h2 { color:var(--primary); text-shadow:0 0 10px var(--primary); font-size:2rem; }
+    .canvas-effect { background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(75, 0, 130, 0.3)) !important; border-color: #8a2be2 !important; }
+    .canvas-effect:hover { background: rgba(138, 43, 226, 0.5) !important; }
+    .canvas-effect.active { background: linear-gradient(135deg, #8a2be2, #4b0082) !important; color:#fff !important; border-color:#8a2be2 !important; box-shadow:0 0 15px #8a2be2; }
+    
+    /* Music Player Styles */
+    .music-player { background: rgba(20, 20, 30, 0.8); border: 1px solid rgba(0, 200, 255, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+    .music-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+    .music-controls button { flex: 1; padding: 12px; font-size: 0.9rem; }
+    .music-controls button.play-btn { background: linear-gradient(135deg, #00ff88, #00cc66); }
+    .music-controls button.stop-btn { background: linear-gradient(135deg, #ff5555, #ff0000); }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+    .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+    .file-input-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #ffaa00, #ff8800); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-align: center; }
+    .visualizer-container { width: 100%; height: 100px; background: rgba(0, 0, 0, 0.5); border-radius: 10px; overflow: hidden; position: relative; }
+    #musicVisualizer { width: 100%; height: 100%; }
+    .volume-control { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .volume-control input { flex: 1; }
+    .now-playing { color: var(--primary); font-size: 0.9rem; margin-bottom: 10px; text-align: center; }
+    
+    @media (max-width: 768px) {
+      .panel { grid-template-columns:1fr; }
+      .section[style*="grid-column"] { grid-column:1 !important; }
+      .speed-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glowcrowd-logo">
+    <h2>LumiK</h2>
+  </div>
+  
+  <div class="panel">
+    <!-- Columna izquierda: Colores y Brillo -->
+    <div class="section">
+      <div class="section-title">Color Principal</div>
+      <div id="preview">
+        <canvas id="preview-canvas"></canvas>
+      </div>
+      
+      <div class="slider-container">
+        <label>ROJO: <span id="r-value" class="value-display">0</span></label>
+        <input id="r" class="slider" type="range" min="0" max="255" value="0">
+      </div>
+      
+      <div class="slider-container">
+        <label>VERDE: <span id="g-value" class="value-display">0</span></label>
+        <input id="g" class="slider" type="range" min="0" max="255" value="0">
+      </div>
+      
+      <div class="slider-container">
+        <label>AZUL: <span id="b-value" class="value-display">0</span></label>
+        <input id="b" class="slider" type="range" min="0" max="255" value="0">
+      </div>
+      
+      <button onclick="sendColor()">ENVIAR COLOR</button>
+    </div>
+    
+    <!-- Modo Multicolor -->
+    <div class="section">
+      <div class="section-title">Modo Multicolor</div>
+      
+      <div style="margin-bottom:15px;">
+        <label style="color:#aaa; font-size:0.9rem;">Colores simultáneos (gradiente):</label>
+        <div id="multiColorContainer" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+          <!-- Los colores se agregarán aquí -->
+        </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+        <div>
+          <label>Color 1 (R,G,B):</label>
+          <div style="display:flex; gap:5px; margin-top:5px;">
+            <input type="number" id="mc1r" class="bpm-input" min="0" max="255" value="255" style="width:33%;">
+            <input type="number" id="mc1g" class="bpm-input" min="0" max="255" value="0" style="width:33%;">
+            <input type="number" id="mc1b" class="bpm-input" min="0" max="255" value="0" style="width:33%;">
+          </div>
+        </div>
+        <div>
+          <label>Color 2 (R,G,B):</label>
+          <div style="display:flex; gap:5px; margin-top:5px;">
+            <input type="number" id="mc2r" class="bpm-input" min="0" max="255" value="0" style="width:33%;">
+            <input type="number" id="mc2g" class="bpm-input" min="0" max="255" value="255" style="width:33%;">
+            <input type="number" id="mc2b" class="bpm-input" min="0" max="255" value="0" style="width:33%;">
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom:15px;">
+        <label>Dirección del gradiente:</label>
+        <select id="gradientDirection" style="width:100%; padding:10px; background:rgba(40,40,60,0.7); color:#fff; border:1px solid rgba(100,200,255,0.3); border-radius:8px; margin-top:5px;">
+          <option value="horizontal">Horizontal (Izquierda → Derecha)</option>
+          <option value="vertical">Vertical (Arriba → Abajo)</option>
+          <option value="diagonal">Diagonal</option>
+          <option value="radial">Radial (Centro → Afuera)</option>
+        </select>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button onclick="sendMultiColor()" style="background:linear-gradient(135deg, #ff00ff, #8800ff);">🌈 ENVIAR MULTICOLOR</button>
+        <button onclick="addMultiColor()" style="background:linear-gradient(135deg, #00ff88, #00cc66);">➕ AGREGAR COLOR</button>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">Velocidades</div>
+      
+      <div class="speed-controls">
+        <div class="speed-panel">
+          <label>BPM (Vibración):</label>
+          <input type="number" id="bpmInput" class="bpm-input" min="1" max="500" value="120" onchange="updateBpmSlider(this.value)">
+          <div class="bpm-control">
+            <span style="flex:1; text-align:right;">1</span>
+            <input id="bpm" class="slider" type="range" min="1" max="500" value="120" oninput="updateBpmInput(this.value)">
+            <span style="flex:1;">500</span>
+            <div id="bpmValue" class="bpm-value">120</div>
+          </div>
+          <button onclick="sendBpm()">ENVIAR BPM</button>
+        </div>
+        
+        <div class="speed-panel">
+          <label>Velocidad Visuales:</label>
+          <input type="number" id="speedInput" class="bpm-input" min="1" max="500" value="5" onchange="updateSpeedSlider(this.value)">
+          <div class="bpm-control">
+            <span style="flex:1; text-align:right;">1</span>
+            <input id="speed" class="slider" type="range" min="1" max="500" value="5" oninput="updateSpeedInput(this.value)">
+            <span style="flex:1;">500</span>
+            <div id="speedValue" class="bpm-value">5</div>
+          </div>
+          <button onclick="sendSpeed()">ENVIAR VELOCIDAD</button>
+        </div>
+      </div>
+      
+      <div class="slider-container" style="margin-top:25px;">
+        <label>BRILLO GLOBAL: <span id="brightness-value" class="value-display">100</span>%</label>
+        <input id="brightness" class="slider" type="range" min="30" max="100" value="100">
+      </div>
+      
+      <button onclick="sendBrightness()">AJUSTAR BRILLO</button>
+    </div>
+    
+    <!-- Columna derecha: Efectos -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Efectos Visuales Premium</div>
+      
+      <div style="margin-bottom:15px;">
+        <label style="color:#aaa; font-size:0.9rem;">Categoría:</label>
+        <select id="effectCategory" onchange="filterEffects()" style="width:100%; padding:10px; background:rgba(40,40,60,0.7); color:#fff; border:1px solid rgba(100,200,255,0.3); border-radius:8px; margin-top:5px;">
+          <option value="all">Todos los Efectos</option>
+          <option value="css">Efectos CSS Clásicos</option>
+          <option value="canvas">Efectos Canvas Avanzados</option>
+        </select>
+      </div>
+      
+      <div class="effects-grid" id="effectsGrid">
+        <!-- Efectos CSS Clásicos -->
+        <button class="effect-btn" data-category="css" onclick="activateEffect('pulse', this)">LATIDO CÓSMICO</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('rainbow', this)">ARCOÍRIS GALÁCTICO</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('stars', this)">LLUVIA DE ESTRELLAS</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('waves', this)">OCÉANO LUMINOSO</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('spiral', this)">ESPIRAL CUÁNTICA</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('fire', this)">INFERNO CROMÁTICO</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('nebula', this)">NEBULOSA PROFUNDA</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('lightning', this)">TORMENTA ELÉCTRICA</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('rain', this)">GOTAS NEÓN</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('galaxy', this)">VIAJE GALÁCTICO</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('laser', this)">RED LÁSER</button>
+        <button class="effect-btn" data-category="css" onclick="activateEffect('disco', this)">PISTA DE BAILE</button>
+        
+        <!-- Efectos Canvas Avanzados -->
+        <button class="effect-btn canvas-effect" data-category="canvas" onclick="activateEffect('aurora', this)">🌌 AURORA BOREAL</button>
+        <button class="effect-btn canvas-effect" data-category="canvas" onclick="activateEffect('matrix', this)">💻 MATRIX DIGITAL</button>
+        <button class="effect-btn canvas-effect" data-category="canvas" onclick="activateEffect('plasma', this)">⚡ PLASMA FLUIDO</button>
+        <button class="effect-btn canvas-effect" data-category="canvas" onclick="activateEffect('audio', this)">🎵 AUDIO REACTIVO</button>
+        <button class="effect-btn canvas-effect" data-category="canvas" onclick="activateEffect('fireworks', this)">🎆 FUEGOS ARTIFICIALES</button>
+        <button class="effect-btn canvas-effect" data-category="canvas" onclick="activateEffect('vortex', this)">🌀 VÓRTICE CÓSMICO</button>
+      </div>
+    </div>
+    
+    <!-- Columna derecha: Texto y Buzzer -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Mensaje & Buzzer</div>
+      <input type="text" id="textInput" placeholder="Escribe tu mensaje..." maxlength="50">
+      
+      <div class="text-options">
+        <div class="slider-container">
+          <label>Tamaño: <span id="textSize-value" class="value-display">100</span>%</label>
+          <input id="textSize" class="slider text-slider" type="range" min="50" max="200" value="100">
+        </div>
+        
+        <div class="slider-container">
+          <label>Velocidad: <span id="textSpeed-value" class="value-display">5</span></label>
+          <input id="textSpeed" class="slider text-slider" type="range" min="1" max="10" value="5">
+        </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <button onclick="sendText()">ENVIAR TEXTO</button>
+        <button id="buzzer-btn" class="buzzer-btn" onmousedown="startBuzzer()" onmouseup="stopBuzzer()" ontouchstart="startBuzzer()" ontouchend="stopBuzzer()">BUZZER MANUAL</button>
+      </div>
+      
+      <button onclick="clearAll()" style="background:linear-gradient(135deg, #ff5555, #ff0000); margin-top:10px;">LIMPIAR PANTALLAS</button>
+    </div>
+    
+    <!-- Sistema de Presets -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Sistema de Presets</div>
+      
+      <div style="display:grid; grid-template-columns:1fr 2fr 1fr; gap:10px; margin-bottom:15px;">
+        <input type="text" id="presetName" placeholder="Nombre del preset..." style="padding:10px; background:rgba(40,40,60,0.7); color:#fff; border:1px solid rgba(100,200,255,0.3); border-radius:8px;">
+        <button onclick="savePreset()" style="background:linear-gradient(135deg, #00ff88, #00cc66);">💾 GUARDAR PRESET</button>
+        <button onclick="deleteSelectedPreset()" style="background:linear-gradient(135deg, #ff5555, #ff0000);">🗑️</button>
+      </div>
+      
+      <div id="presetsList" style="max-height:200px; overflow-y:auto; margin-bottom:15px;">
+        <!-- Los presets se cargarán aquí -->
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button onclick="loadSelectedPreset()" style="background:linear-gradient(135deg, #4488ff, #2266dd);">📂 CARGAR SELECCIONADO</button>
+        <button onclick="applySelectedPreset()" style="background:linear-gradient(135deg, #ffaa00, #ff8800);">⚡ APLICAR SELECCIONADO</button>
+      </div>
+    </div>
+    
+    <!-- Modo Automático -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Modo Automático / Secuenciador</div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+        <div>
+          <label>Intervalo (segundos): <span id="autoInterval-value" class="value-display">5</span></label>
+          <input id="autoInterval" class="slider" type="range" min="2" max="30" value="5" oninput="document.getElementById('autoInterval-value').textContent = this.value">
+        </div>
+        <div>
+          <label>Transición (segundos): <span id="transitionDuration-value" class="value-display">1</span></label>
+          <input id="transitionDuration" class="slider" type="range" min="0.5" max="3" step="0.5" value="1" oninput="document.getElementById('transitionDuration-value').textContent = this.value">
+        </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button id="autoModeBtn" onclick="toggleAutoMode()" style="background:linear-gradient(135deg, #8844ff, #6622dd);">▶️ INICIAR AUTO MODE</button>
+        <button onclick="stopAutoMode()" style="background:linear-gradient(135deg, #ff5555, #ff0000);">⏹️ DETENER</button>
+      </div>
+      
+      <div id="autoModeStatus" style="text-align:center; margin-top:10px; color:#aaa; font-size:0.9rem;">Modo automático desactivado</div>
+    </div>
+    
+    <!-- Modo Audio Reactivo -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Modo Audio Reactivo</div>
+      
+      <div style="margin-bottom:15px; padding:15px; background:rgba(255,170,0,0.1); border:1px solid rgba(255,170,0,0.3); border-radius:10px;">
+        <p style="color:#ffa500; font-size:0.9rem; margin:0;">🎵 Este modo usa el micrófono para reaccionar a la música o sonido ambiental. Se solicitará permiso para acceder al micrófono.</p>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button id="audioModeBtn" onclick="toggleAudioMode()" style="background:linear-gradient(135deg, #ff6600, #ff3300);">🎤 ACTIVAR AUDIO REACTIVO</button>
+        <button onclick="stopAudioMode()" style="background:linear-gradient(135deg, #ff5555, #ff0000);">⏹️ DETENER AUDIO</button>
+      </div>
+      
+      <div id="audioModeStatus" style="text-align:center; margin-top:10px; color:#aaa; font-size:0.9rem;">Modo audio reactivo desactivado</div>
+    </div>
+    
+    <!-- Reproductor de Música -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">🎵 Reproductor de Música</div>
+      
+      <div class="music-player">
+        <div class="file-input-wrapper">
+          <div class="file-input-btn">📁 Seleccionar Archivo de Música (MP3/M4A)</div>
+          <input type="file" id="musicFile" accept="audio/mp3,audio/m4a,audio/*" onchange="loadMusicFile(event)">
+        </div>
+        
+        <div class="now-playing" id="nowPlaying">Ningún archivo seleccionado</div>
+        
+        <div class="music-controls">
+          <button class="play-btn" onclick="playMusic()">▶️ Reproducir</button>
+          <button class="stop-btn" onclick="stopMusic()">⏹️ Detener</button>
+          <button onclick="pauseMusic()">⏸️ Pausar</button>
+        </div>
+        
+        <div class="volume-control">
+          <label style="color:#aaa; font-size:0.9rem;">🔊 Volumen:</label>
+          <input id="volumeSlider" class="slider" type="range" min="0" max="100" value="70" oninput="setVolume(this.value)">
+          <span id="volumeValue" class="value-display">70</span>%
+        </div>
+        
+        <div class="visualizer-container">
+          <canvas id="musicVisualizer"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Historial de Comandos -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Historial de Comandos</div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+        <button onclick="clearHistory()" style="background:linear-gradient(135deg, #666, #444);">🗑️ LIMPIAR HISTORIAL</button>
+        <button onclick="exportHistory()" style="background:linear-gradient(135deg, #4488ff, #2266dd);">📤 EXPORTAR HISTORIAL</button>
+      </div>
+      
+      <div id="commandHistory" style="max-height:200px; overflow-y:auto; background:rgba(20,20,30,0.8); border:1px solid rgba(100,200,255,0.2); border-radius:8px; padding:10px;">
+        <div style="text-align:center; color:#888; padding:20px;">No hay comandos en el historial</div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="status" class="status">Conectando al servidor...</div>
+
+  <script>
+    let ws;
+    let currentEffect = null;
+    const preview = document.getElementById('preview');
+    const previewCanvas = document.getElementById('preview-canvas');
+    const previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+    const statusDiv = document.getElementById('status');
+    let lastColorSent = 0;
+    let colorThrottle = false;
+    let buzzerActive = false;
+    let presets = [];
+    let selectedPresetIndex = -1;
+    let autoModeInterval = null;
+    let autoModeActive = false;
+    let currentAutoEffectIndex = 0;
+    let previewAnimationId = null;
+    const autoEffects = ['pulse', 'rainbow', 'aurora', 'matrix', 'plasma', 'fireworks', 'vortex', 'nebula', 'galaxy', 'disco'];
+    let multiColors = [];
+    let audioModeActive = false;
+    let commandHistory = [];
+    const MAX_HISTORY = 50;
+    
+    // Music Player Variables
+    let audioElement = null;
+    let audioContext = null;
+    let analyser = null;
+    let audioSource = null;
+    let musicVisualizerCanvas = null;
+    let musicVisualizerCtx = null;
+    let musicVisualizerAnimationId = null;
+    let audioDataArray = null;
+    
+    // Inicializar canvas de vista previa
+    function initPreviewCanvas() {
+      if(previewCanvas) {
+        previewCanvas.width = preview.offsetWidth;
+        previewCanvas.height = preview.offsetHeight;
+      }
+    }
+    
+    // Vista previa de color sólido
+    function updatePreview() {
+      const r = document.getElementById('r').value;
+      const g = document.getElementById('g').value;
+      const b = document.getElementById('b').value;
+      preview.style.background = `rgb(${r},${g},${b})`;
+      preview.style.boxShadow = `0 0 30px rgba(${r},${g},${b},0.7)`;
+      
+      if(previewCtx && !currentEffect) {
+        previewCtx.fillStyle = `rgb(${r},${g},${b})`;
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+      }
+    }
+    
+    // Vista previa de efectos
+    function startPreviewEffect(effectName) {
+      if(!previewCtx) return;
+      
+      stopPreviewEffect();
+      
+      let time = 0;
+      
+      function drawPreview() {
+        const speed = parseFloat(document.getElementById('speed').value) || 5;
+        const brightness = parseFloat(document.getElementById('brightness').value) / 100 || 1;
+        
+        previewCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        
+        if(effectName === 'pulse') {
+          const scale = 0.8 + Math.sin(time * 0.1 * speed) * 0.2;
+          const gradient = previewCtx.createRadialGradient(
+            previewCanvas.width/2, previewCanvas.height/2, 0,
+            previewCanvas.width/2, previewCanvas.height/2, previewCanvas.width/2 * scale
+          );
+          gradient.addColorStop(0, `rgba(255, 0, 0, ${0.8 * brightness})`);
+          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          previewCtx.fillStyle = gradient;
+          previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
+        else if(effectName === 'rainbow') {
+          const gradient = previewCtx.createLinearGradient(0, 0, previewCanvas.width, 0);
+          for(let i = 0; i <= 12; i++) {
+            const hue = (i * 30 + time * 10 * speed) % 360;
+            gradient.addColorStop(i/12, `hsla(${hue}, 100%, 50%, ${brightness})`);
+          }
+          previewCtx.fillStyle = gradient;
+          previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
+        else if(effectName === 'aurora') {
+          for(let i = 0; i < 3; i++) {
+            const gradient = previewCtx.createLinearGradient(0, 0, previewCanvas.width, previewCanvas.height);
+            const hue = (time * 10 + i * 60) % 360;
+            gradient.addColorStop(0, `hsla(${hue}, 80%, 50%, 0)`);
+            gradient.addColorStop(0.5, `hsla(${hue + 30}, 80%, 60%, ${0.3 * brightness})`);
+            gradient.addColorStop(1, `hsla(${hue + 60}, 80%, 50%, 0)`);
+            
+            previewCtx.beginPath();
+            previewCtx.moveTo(0, previewCanvas.height);
+            
+            for(let x = 0; x <= previewCanvas.width; x += 10) {
+              const y = previewCanvas.height * 0.4 + 
+                        Math.sin((x + time * 30 * speed) * 0.02 + i) * 30;
+              previewCtx.lineTo(x, y);
+            }
+            
+            previewCtx.lineTo(previewCanvas.width, previewCanvas.height);
+            previewCtx.closePath();
+            previewCtx.fillStyle = gradient;
+            previewCtx.fill();
+          }
+        }
+        else if(effectName === 'matrix') {
+          previewCtx.fillStyle = `rgba(0, 255, 70, ${brightness})`;
+          previewCtx.font = '10px monospace';
+          
+          for(let i = 0; i < 20; i++) {
+            const char = String.fromCharCode(0x30A0 + Math.random() * 96);
+            const x = (i * 12 + time * 20 * speed) % previewCanvas.width;
+            const y = (i * 15 + time * 10 * speed) % previewCanvas.height;
+            previewCtx.fillText(char, x, y);
+          }
+        }
+        else if(effectName === 'plasma') {
+          const imageData = previewCtx.createImageData(previewCanvas.width, previewCanvas.height);
+          const data = imageData.data;
+          
+          for(let y = 0; y < previewCanvas.height; y += 4) {
+            for(let x = 0; x < previewCanvas.width; x += 4) {
+              const v = Math.sin(x * 0.05 + time) + Math.sin(y * 0.05 + time);
+              const hue = (v * 90 + time * 50) % 360;
+              const rgb = hslToRgb(hue / 360, 0.8, 0.5);
+              
+              for(let dy = 0; dy < 4; dy++) {
+                for(let dx = 0; dx < 4; dx++) {
+                  const index = ((y + dy) * previewCanvas.width + (x + dx)) * 4;
+                  if(index < data.length) {
+                    data[index] = rgb[0] * brightness;
+                    data[index + 1] = rgb[1] * brightness;
+                    data[index + 2] = rgb[2] * brightness;
+                    data[index + 3] = 255;
+                  }
+                }
+              }
+            }
+          }
+          
+          previewCtx.putImageData(imageData, 0, 0);
+        }
+        else if(effectName === 'fireworks') {
+          if(Math.random() < 0.1) {
+            const x = Math.random() * previewCanvas.width;
+            const y = Math.random() * previewCanvas.height * 0.5;
+            const hue = Math.random() * 360;
+            
+            for(let i = 0; i < 20; i++) {
+              const angle = (Math.PI * 2 / 20) * i;
+              const radius = Math.random() * 20 + 10;
+              const px = x + Math.cos(angle) * radius;
+              const py = y + Math.sin(angle) * radius;
+              
+              previewCtx.beginPath();
+              previewCtx.arc(px, py, 2, 0, Math.PI * 2);
+              previewCtx.fillStyle = `hsla(${hue}, 100%, 70%, ${brightness})`;
+              previewCtx.fill();
+            }
+          }
+        }
+        else if(effectName === 'vortex') {
+          const centerX = previewCanvas.width / 2;
+          const centerY = previewCanvas.height / 2;
+          
+          for(let i = 0; i < 2; i++) {
+            previewCtx.beginPath();
+            
+            for(let angle = 0; angle < Math.PI * 2; angle += 0.2) {
+              const radius = 20 + i * 30 + Math.sin(angle * 3 + time) * 10;
+              const x = centerX + Math.cos(angle + time + i) * radius;
+              const y = centerY + Math.sin(angle + time + i) * radius;
+              
+              if(angle === 0) {
+                previewCtx.moveTo(x, y);
+              } else {
+                previewCtx.lineTo(x, y);
+              }
+            }
+            
+            previewCtx.closePath();
+            const hue = (time * 50 + i * 120) % 360;
+            previewCtx.strokeStyle = `hsla(${hue}, 80%, 60%, ${brightness})`;
+            previewCtx.lineWidth = 2;
+            previewCtx.stroke();
+          }
+        }
+        else {
+          // Para efectos CSS simples, mostrar gradiente
+          const gradient = previewCtx.createLinearGradient(0, 0, previewCanvas.width, previewCanvas.height);
+          gradient.addColorStop(0, `hsla(${time * 50 % 360}, 70%, 50%, ${brightness})`);
+          gradient.addColorStop(1, `hsla(${(time * 50 + 180) % 360}, 70%, 50%, ${brightness})`);
+          previewCtx.fillStyle = gradient;
+          previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
+        
+        time += 0.05;
+        previewAnimationId = requestAnimationFrame(drawPreview);
+      }
+      
+      drawPreview();
+    }
+    
+    function stopPreviewEffect() {
+      if(previewAnimationId) {
+        cancelAnimationFrame(previewAnimationId);
+        previewAnimationId = null;
+      }
+    }
+    
+    // Helper: HSL to RGB
+    function hslToRgb(h, s, l) {
+      let r, g, b;
+      
+      if(s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if(t < 0) t += 1;
+          if(t > 1) t -= 1;
+          if(t < 1/6) return p + (q - p) * 6 * t;
+          if(t < 1/2) return q;
+          if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    // Conectar WebSocket
+    function connectWebSocket() {
+      try {
+        ws = new WebSocket('ws://' + location.host + '/ws');
+        
+        ws.onopen = () => {
+          statusDiv.textContent = "Conectado al servidor";
+          statusDiv.className = "status";
+        };
+        
+        ws.onclose = () => {
+          statusDiv.textContent = "Desconectado. Reconectando...";
+          statusDiv.className = "status error";
+          setTimeout(connectWebSocket, 2000);
+        };
+        
+        ws.onerror = (error) => {
+          statusDiv.textContent = "Error de conexión";
+          statusDiv.className = "status error";
+        };
+      } catch (error) {
+        statusDiv.textContent = "Error: " + error.message;
+        statusDiv.className = "status error";
+        setTimeout(connectWebSocket, 2000);
+      }
+    }
+    
+    // Iniciar conexión
+    connectWebSocket();
+    
+    // Actualizar valores BPM
+    function updateBpmInput(value) {
+      document.getElementById('bpmValue').textContent = value;
+      document.getElementById('bpmInput').value = value;
+    }
+    
+    function updateBpmSlider(value) {
+      if (value < 1) value = 1;
+      if (value > 500) value = 500;
+      document.getElementById('bpm').value = value;
+      document.getElementById('bpmValue').textContent = value;
+    }
+    
+    // Actualizar valores Velocidad Visuales
+    function updateSpeedInput(value) {
+      document.getElementById('speedValue').textContent = value;
+      document.getElementById('speedInput').value = value;
+    }
+    
+    function updateSpeedSlider(value) {
+      if (value < 1) value = 1;
+      if (value > 500) value = 500;
+      document.getElementById('speed').value = value;
+      document.getElementById('speedValue').textContent = value;
+    }
+    
+    document.getElementById('brightness').addEventListener('input', function() {
+      document.getElementById('brightness-value').textContent = this.value;
+    });
+    
+    document.getElementById('textSize').addEventListener('input', function() {
+      document.getElementById('textSize-value').textContent = this.value;
+    });
+    
+    document.getElementById('textSpeed').addEventListener('input', function() {
+      document.getElementById('textSpeed-value').textContent = this.value;
+    });
+    
+    // Eventos para los sliders de color (en tiempo real)
+    ['r','g','b'].forEach(id => {
+      const slider = document.getElementById(id);
+      slider.addEventListener('input', function() {
+        document.getElementById(`${id}-value`).textContent = this.value;
+        updatePreview();
+        
+        // Enviar en tiempo real con throttling
+        if (!colorThrottle) {
+          colorThrottle = true;
+          setTimeout(() => {
+            sendColor(false);
+            colorThrottle = false;
+          }, 100); // 10 FPS
+        }
+      });
+    });
+    
+    // Actualizar previsualización de color
+    function updatePreview() {
+      const r = document.getElementById('r').value;
+      const g = document.getElementById('g').value;
+      const b = document.getElementById('b').value;
+      preview.style.background = `rgb(${r},${g},${b})`;
+      preview.style.boxShadow = `0 0 30px rgba(${r},${g},${b},0.7)`;
+    }
+    
+    // Enviar color (withButton indica si fue por botón)
+    function sendColor(withButton = true) {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const r = document.getElementById('r').value;
+      const g = document.getElementById('g').value;
+      const b = document.getElementById('b').value;
+      const command = `COLOR:${r},${g},${b}`;
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, `Color RGB(${r},${g},${b})`);
+      
+      // Detener vista previa de efectos
+      stopPreviewEffect();
+      updatePreview();
+      
+      // Desactivar efecto si se envió con botón
+      if(withButton && currentEffect) {
+        currentEffect.classList.remove('active');
+        currentEffect = null;
+        statusDiv.textContent = "Color sólido activado";
+        setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+      }
+    }
+    
+    // Enviar BPM
+    function sendBpm() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const bpm = document.getElementById('bpm').value;
+      const command = `BPM:${bpm}`;
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, `BPM: ${bpm}`);
+      
+      statusDiv.textContent = "BPM enviado";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    // Enviar Velocidad Visuales
+    function sendSpeed() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const speed = document.getElementById('speed').value;
+      const command = `SPEED:${speed}`;
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, `Velocidad: ${speed}`);
+      
+      statusDiv.textContent = "Velocidad visuales enviada";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    // Enviar brillo
+    function sendBrightness() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const brightness = document.getElementById('brightness').value;
+      const command = `BRIGHTNESS:${brightness}`;
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, `Brillo: ${brightness}%`);
+      
+      statusDiv.textContent = "Brillo global ajustado";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    // Activar efecto
+    function activateEffect(effectName, element) {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      // Desactivar efecto anterior
+      if(currentEffect) {
+        currentEffect.classList.remove('active');
+      }
+      
+      // Activar nuevo efecto
+      element.classList.add('active');
+      currentEffect = element;
+      const command = `EFFECT:${effectName}`;
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, `Efecto: ${element.textContent}`);
+      
+      // Iniciar vista previa
+      startPreviewEffect(effectName);
+      
+      statusDiv.textContent = `Efecto activado: ${element.textContent}`;
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 3000);
+    }
+    
+    // Enviar texto
+    function sendText() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const text = document.getElementById('textInput').value;
+      if(text.trim() !== '') {
+        const size = document.getElementById('textSize').value;
+        const speed = document.getElementById('textSpeed').value;
+        const command = `TEXT:${text}|${size}|${speed}`;
+        ws.send(command);
+        
+        // Agregar al historial
+        addToHistory(command, `Texto: "${text}"`);
+        
+        statusDiv.textContent = "Mensaje enviado!";
+        setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+      }
+    }
+    
+    // Buzzer manual
+    function startBuzzer() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      buzzerActive = true;
+      const command = 'BUZZER:START';
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, 'Buzzer: Iniciar');
+      
+      document.getElementById('buzzer-btn').style.boxShadow = '0 0 20px #ff0000';
+    }
+    
+    function stopBuzzer() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      buzzerActive = false;
+      const command = 'BUZZER:STOP';
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, 'Buzzer: Detener');
+      
+      document.getElementById('buzzer-btn').style.boxShadow = '';
+    }
+    
+    // Limpiar todo (texto y efectos)
+    function clearAll() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const command = 'CLEAR:ALL';
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, 'Limpiar pantallas');
+      
+      document.getElementById('textInput').value = '';
+      if(currentEffect) {
+        currentEffect.classList.remove('active');
+        currentEffect = null;
+      }
+      statusDiv.textContent = "Pantallas limpiadas";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    // Filtrar efectos por categoría
+    function filterEffects() {
+      const category = document.getElementById('effectCategory').value;
+      const buttons = document.querySelectorAll('#effectsGrid .effect-btn');
+      
+      buttons.forEach(btn => {
+        const btnCategory = btn.getAttribute('data-category');
+        if(category === 'all' || btnCategory === category) {
+          btn.style.display = 'block';
+        } else {
+          btn.style.display = 'none';
+        }
+      });
+    }
+    
+    // Sistema de Presets
+    function loadPresetsFromStorage() {
+      const saved = localStorage.getItem('lumikPresets');
+      if(saved) {
+        presets = JSON.parse(saved);
+        renderPresetsList();
+      }
+    }
+    
+    function savePreset() {
+      const name = document.getElementById('presetName').value.trim();
+      if(!name) {
+        alert('Por favor ingresa un nombre para el preset');
+        return;
+      }
+      
+      const preset = {
+        name: name,
+        r: document.getElementById('r').value,
+        g: document.getElementById('g').value,
+        b: document.getElementById('b').value,
+        brightness: document.getElementById('brightness').value,
+        speed: document.getElementById('speed').value,
+        bpm: document.getElementById('bpm').value,
+        effect: currentEffect ? currentEffect.textContent : null,
+        timestamp: new Date().toISOString()
+      };
+      
+      presets.push(preset);
+      localStorage.setItem('lumikPresets', JSON.stringify(presets));
+      renderPresetsList();
+      document.getElementById('presetName').value = '';
+      statusDiv.textContent = "Preset guardado: " + name;
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function renderPresetsList() {
+      const list = document.getElementById('presetsList');
+      list.innerHTML = '';
+      
+      if(presets.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">No hay presets guardados</div>';
+        return;
+      }
+      
+      presets.forEach((preset, index) => {
+        const div = document.createElement('div');
+        div.className = 'preset-item';
+        div.style.cssText = `
+          padding:12px;
+          margin-bottom:8px;
+          background:rgba(40,40,60,0.7);
+          border:1px solid rgba(100,200,255,0.2);
+          border-radius:8px;
+          cursor:pointer;
+          transition:all 0.3s;
+          ${selectedPresetIndex === index ? 'border-color:var(--primary); box-shadow:0 0 10px rgba(0,200,255,0.3);' : ''}
+        `;
+        div.innerHTML = `
+          <div style="font-weight:bold; color:#fff; margin-bottom:5px;">${preset.name}</div>
+          <div style="font-size:0.85rem; color:#aaa;">
+            ${preset.effect ? '🎨 ' + preset.effect : '🎨 Color sólido'} | 
+            💡 ${preset.brightness}% | 
+            ⚡ ${preset.speed}
+          </div>
+        `;
+        div.onclick = () => selectPreset(index);
+        list.appendChild(div);
+      });
+    }
+    
+    function selectPreset(index) {
+      selectedPresetIndex = index;
+      renderPresetsList();
+    }
+    
+    function loadSelectedPreset() {
+      if(selectedPresetIndex === -1) {
+        alert('Selecciona un preset primero');
+        return;
+      }
+      
+      const preset = presets[selectedPresetIndex];
+      document.getElementById('r').value = preset.r;
+      document.getElementById('g').value = preset.g;
+      document.getElementById('b').value = preset.b;
+      document.getElementById('brightness').value = preset.brightness;
+      document.getElementById('speed').value = preset.speed;
+      document.getElementById('bpm').value = preset.bpm;
+      
+      document.getElementById('r-value').textContent = preset.r;
+      document.getElementById('g-value').textContent = preset.g;
+      document.getElementById('b-value').textContent = preset.b;
+      document.getElementById('brightness-value').textContent = preset.brightness;
+      document.getElementById('speedValue').textContent = preset.speed;
+      document.getElementById('bpmValue').textContent = preset.bpm;
+      document.getElementById('speedInput').value = preset.speed;
+      document.getElementById('bpmInput').value = preset.bpm;
+      
+      updatePreview();
+      statusDiv.textContent = "Preset cargado: " + preset.name;
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function applySelectedPreset() {
+      if(selectedPresetIndex === -1) {
+        alert('Selecciona un preset primero');
+        return;
+      }
+      
+      loadSelectedPreset();
+      
+      const preset = presets[selectedPresetIndex];
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      ws.send(`COLOR:${preset.r},${preset.g},${preset.b}`);
+      ws.send(`BRIGHTNESS:${preset.brightness}`);
+      ws.send(`SPEED:${preset.speed}`);
+      ws.send(`BPM:${preset.bpm}`);
+      
+      if(preset.effect && currentEffect) {
+        // Ya debería estar activado visualmente
+      }
+      
+      statusDiv.textContent = "Preset aplicado: " + preset.name;
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function deleteSelectedPreset() {
+      if(selectedPresetIndex === -1) {
+        alert('Selecciona un preset primero');
+        return;
+      }
+      
+      if(confirm('¿Eliminar este preset?')) {
+        presets.splice(selectedPresetIndex, 1);
+        selectedPresetIndex = -1;
+        localStorage.setItem('lumikPresets', JSON.stringify(presets));
+        renderPresetsList();
+        statusDiv.textContent = "Preset eliminado";
+        setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+      }
+    }
+    
+    // Modo Automático / Secuenciador
+    function toggleAutoMode() {
+      if(autoModeActive) {
+        stopAutoMode();
+      } else {
+        startAutoMode();
+      }
+    }
+    
+    function startAutoMode() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Conecta al servidor primero');
+        return;
+      }
+      
+      autoModeActive = true;
+      currentAutoEffectIndex = 0;
+      document.getElementById('autoModeBtn').textContent = '⏸️ PAUSAR AUTO MODE';
+      document.getElementById('autoModeStatus').textContent = 'Modo automático activo - Cambiando efectos...';
+      document.getElementById('autoModeStatus').style.color = '#0f0';
+      
+      const interval = document.getElementById('autoInterval').value * 1000;
+      
+      // Aplicar primer efecto inmediatamente
+      applyAutoEffect();
+      
+      autoModeInterval = setInterval(() => {
+        applyAutoEffect();
+      }, interval);
+      
+      statusDiv.textContent = "Modo automático iniciado";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function stopAutoMode() {
+      autoModeActive = false;
+      if(autoModeInterval) {
+        clearInterval(autoModeInterval);
+        autoModeInterval = null;
+      }
+      
+      document.getElementById('autoModeBtn').textContent = '▶️ INICIAR AUTO MODE';
+      document.getElementById('autoModeStatus').textContent = 'Modo automático desactivado';
+      document.getElementById('autoModeStatus').style.color = '#aaa';
+      
+      statusDiv.textContent = "Modo automático detenido";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function applyAutoEffect() {
+      const effectName = autoEffects[currentAutoEffectIndex];
+      const effectButtons = document.querySelectorAll('.effect-btn');
+      
+      // Encontrar el botón correspondiente
+      for(let btn of effectButtons) {
+        if(btn.onclick.toString().includes(`'${effectName}'`)) {
+          activateEffect(effectName, btn);
+          break;
+        }
+      }
+      
+      // Avanzar al siguiente efecto
+      currentAutoEffectIndex = (currentAutoEffectIndex + 1) % autoEffects.length;
+    }
+    
+    // Inicializar
+    loadPresetsFromStorage();
+    updatePreview();
+    initPreviewCanvas();
+    renderHistory();
+    
+    // Inicializar
+    loadPresetsFromStorage();
+    updatePreview();
+    initPreviewCanvas();
+    
+    // Modo Multicolor
+    function sendMultiColor() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const color1 = {
+        r: document.getElementById('mc1r').value,
+        g: document.getElementById('mc1g').value,
+        b: document.getElementById('mc1b').value
+      };
+      
+      const color2 = {
+        r: document.getElementById('mc2r').value,
+        g: document.getElementById('mc2g').value,
+        b: document.getElementById('mc2b').value
+      };
+      
+      const direction = document.getElementById('gradientDirection').value;
+      
+      // Crear string de colores adicionales si existen
+      let additionalColors = '';
+      if(multiColors.length > 0) {
+        additionalColors = multiColors.map(c => `${c.r},${c.g},${c.b}`).join('|');
+      }
+      
+      const message = `MULTICOLOR:${color1.r},${color1.g},${color1.b}|${color2.r},${color2.g},${color2.b}|${direction}${additionalColors ? '|' + additionalColors : ''}`;
+      ws.send(message);
+      
+      // Agregar al historial
+      addToHistory(message, `Multicolor: ${direction}`);
+      
+      // Mostrar vista previa del gradiente
+      showMultiColorPreview(color1, color2, direction);
+      
+      statusDiv.textContent = "Multicolor enviado";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function addMultiColor() {
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      
+      multiColors.push({ r, g, b });
+      renderMultiColorList();
+      
+      statusDiv.textContent = "Color agregado al multicolor";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function renderMultiColorList() {
+      const container = document.getElementById('multiColorContainer');
+      container.innerHTML = '';
+      
+      multiColors.forEach((color, index) => {
+        const div = document.createElement('div');
+        div.style.cssText = `
+          width:40px;
+          height:40px;
+          border-radius:8px;
+          background:rgb(${color.r},${color.g},${color.b});
+          border:2px solid rgba(255,255,255,0.3);
+          cursor:pointer;
+          position:relative;
+        `;
+        div.onclick = () => removeMultiColor(index);
+        div.title = `Click para eliminar - RGB(${color.r},${color.g},${color.b})`;
+        container.appendChild(div);
+      });
+    }
+    
+    function removeMultiColor(index) {
+      multiColors.splice(index, 1);
+      renderMultiColorList();
+    }
+    
+    function showMultiColorPreview(color1, color2, direction) {
+      if(!previewCtx) return;
+      
+      stopPreviewEffect();
+      
+      let gradient;
+      
+      if(direction === 'horizontal') {
+        gradient = previewCtx.createLinearGradient(0, 0, previewCanvas.width, 0);
+      } else if(direction === 'vertical') {
+        gradient = previewCtx.createLinearGradient(0, 0, 0, previewCanvas.height);
+      } else if(direction === 'diagonal') {
+        gradient = previewCtx.createLinearGradient(0, 0, previewCanvas.width, previewCanvas.height);
+      } else if(direction === 'radial') {
+        gradient = previewCtx.createRadialGradient(
+          previewCanvas.width/2, previewCanvas.height/2, 0,
+          previewCanvas.width/2, previewCanvas.height/2, previewCanvas.width/2
+        );
+      }
+      
+      gradient.addColorStop(0, `rgb(${color1.r},${color1.g},${color1.b})`);
+      gradient.addColorStop(1, `rgb(${color2.r},${color2.g},${color2.b})`);
+      
+      // Agregar colores adicionales si existen
+      if(multiColors.length > 0) {
+        multiColors.forEach((color, index) => {
+          const stop = (index + 2) / (multiColors.length + 2);
+          gradient.addColorStop(stop, `rgb(${color.r},${color.g},${color.b})`);
+        });
+      }
+      
+      previewCtx.fillStyle = gradient;
+      previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+    }
+    
+    // Modo Audio Reactivo
+    function toggleAudioMode() {
+      if(audioModeActive) {
+        stopAudioMode();
+      } else {
+        startAudioMode();
+      }
+    }
+    
+    function startAudioMode() {
+      if(!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Conecta al servidor primero');
+        return;
+      }
+      
+      audioModeActive = true;
+      document.getElementById('audioModeBtn').textContent = '⏸️ PAUSAR AUDIO';
+      document.getElementById('audioModeStatus').textContent = 'Modo audio reactivo activo - Escuchando...';
+      document.getElementById('audioModeStatus').style.color = '#0f0';
+      
+      // Enviar comando para activar efecto audio en assistant
+      const command = 'EFFECT:audio';
+      ws.send(command);
+      
+      // Agregar al historial
+      addToHistory(command, 'Audio Reactivo: Iniciar');
+      
+      statusDiv.textContent = "Modo audio reactivo iniciado";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function stopAudioMode() {
+      audioModeActive = false;
+      document.getElementById('audioModeBtn').textContent = '🎤 ACTIVAR AUDIO REACTIVO';
+      document.getElementById('audioModeStatus').textContent = 'Modo audio reactivo desactivado';
+      document.getElementById('audioModeStatus').style.color = '#aaa';
+      
+      statusDiv.textContent = "Modo audio reactivo detenido";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    // Sistema de Historial de Comandos
+    function addToHistory(command, description) {
+      const timestamp = new Date().toLocaleTimeString();
+      commandHistory.unshift({ command, description, timestamp });
+      
+      // Limitar historial a MAX_HISTORY comandos
+      if(commandHistory.length > MAX_HISTORY) {
+        commandHistory.pop();
+      }
+      
+      renderHistory();
+    }
+    
+    function renderHistory() {
+      const historyDiv = document.getElementById('commandHistory');
+      
+      if(commandHistory.length === 0) {
+        historyDiv.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">No hay comandos en el historial</div>';
+        return;
+      }
+      
+      historyDiv.innerHTML = commandHistory.map((item, index) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; margin-bottom:5px; background:rgba(40,40,60,0.5); border-radius:5px; cursor:pointer;" onclick="redoCommand(${index})">
+          <div style="flex:1;">
+            <div style="color:#fff; font-size:0.9rem; font-weight:500;">${item.description}</div>
+            <div style="color:#888; font-size:0.75rem;">${item.timestamp} - ${item.command}</div>
+          </div>
+          <button style="background:rgba(0,200,255,0.2); border:1px solid rgba(0,200,255,0.3); color:#0ff; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.8rem;" onclick="event.stopPropagation(); redoCommand(${index})">🔄 REHACER</button>
+        </div>
+      `).join('');
+    }
+    
+    function redoCommand(index) {
+      const item = commandHistory[index];
+      if(!item || !ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Conecta al servidor primero');
+        return;
+      }
+      
+      ws.send(item.command);
+      addToHistory(item.command, item.description + ' (rehacer)');
+      statusDiv.textContent = "Comando reenviado: " + item.description;
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function clearHistory() {
+      if(confirm('¿Limpiar todo el historial de comandos?')) {
+        commandHistory = [];
+        renderHistory();
+        statusDiv.textContent = "Historial limpiado";
+        setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+      }
+    }
+    
+    function exportHistory() {
+      if(commandHistory.length === 0) {
+        alert('No hay comandos para exportar');
+        return;
+      }
+      
+      const dataStr = JSON.stringify(commandHistory, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `lumik_history_${new Date().toISOString().slice(0,10)}.json`;
+      link.click();
+      
+      URL.revokeObjectURL(url);
+      statusDiv.textContent = "Historial exportado";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    // Music Player Functions
+    function loadMusicFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Clean up previous audio
+      if (audioElement) {
+        audioElement.pause();
+        audioElement = null;
+      }
+      
+      // Create new audio element
+      audioElement = new Audio();
+      audioElement.src = URL.createObjectURL(file);
+      
+      document.getElementById('nowPlaying').textContent = '🎵 ' + file.name;
+      statusDiv.textContent = "Archivo cargado: " + file.name;
+      
+      // Initialize audio context on user interaction
+      audioElement.addEventListener('play', initMusicVisualizer);
+    }
+    
+    function playMusic() {
+      if (!audioElement) {
+        alert('Primero selecciona un archivo de música');
+        return;
+      }
+      
+      audioElement.play();
+      statusDiv.textContent = "Reproduciendo música";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function pauseMusic() {
+      if (!audioElement) return;
+      audioElement.pause();
+      statusDiv.textContent = "Música pausada";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function stopMusic() {
+      if (!audioElement) return;
+      audioElement.pause();
+      audioElement.currentTime = 0;
+      
+      if (musicVisualizerAnimationId) {
+        cancelAnimationFrame(musicVisualizerAnimationId);
+        musicVisualizerAnimationId = null;
+      }
+      
+      if (musicVisualizerCtx) {
+        musicVisualizerCtx.clearRect(0, 0, musicVisualizerCanvas.width, musicVisualizerCanvas.height);
+      }
+      
+      statusDiv.textContent = "Música detenida";
+      setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+    }
+    
+    function setVolume(value) {
+      document.getElementById('volumeValue').textContent = value;
+      if (audioElement) {
+        audioElement.volume = value / 100;
+      }
+    }
+    
+    function initMusicVisualizer() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      if (!analyser) {
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        audioDataArray = new Uint8Array(analyser.frequencyBinCount);
+      }
+      
+      if (!audioSource) {
+        audioSource = audioContext.createMediaElementSource(audioElement);
+        audioSource.connect(analyser);
+        analyser.connect(audioContext.destination);
+      }
+      
+      musicVisualizerCanvas = document.getElementById('musicVisualizer');
+      musicVisualizerCtx = musicVisualizerCanvas.getContext('2d');
+      musicVisualizerCanvas.width = musicVisualizerCanvas.offsetWidth;
+      musicVisualizerCanvas.height = musicVisualizerCanvas.offsetHeight;
+      
+      drawMusicVisualizer();
+    }
+    
+    function drawMusicVisualizer() {
+      if (!analyser || !musicVisualizerCtx) return;
+      
+      musicVisualizerAnimationId = requestAnimationFrame(drawMusicVisualizer);
+      
+      analyser.getByteFrequencyData(audioDataArray);
+      
+      const width = musicVisualizerCanvas.width;
+      const height = musicVisualizerCanvas.height;
+      
+      // Clear with fade effect
+      musicVisualizerCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+      musicVisualizerCtx.fillRect(0, 0, width, height);
+      
+      const barWidth = (width / audioDataArray.length) * 2.5;
+      let x = 0;
+      
+      for (let i = 0; i < audioDataArray.length; i++) {
+        const barHeight = (audioDataArray[i] / 255) * height * 0.8;
+        
+        // Neon colors based on frequency
+        const hue = (i / audioDataArray.length) * 360;
+        const saturation = 100;
+        const lightness = 50 + (audioDataArray[i] / 255) * 20;
+        
+        // Create neon glow effect
+        musicVisualizerCtx.shadowBlur = 15;
+        musicVisualizerCtx.shadowColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        musicVisualizerCtx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        
+        // Draw bar with rounded top
+        musicVisualizerCtx.beginPath();
+        musicVisualizerCtx.roundRect(x, height - barHeight, barWidth - 2, barHeight, [5, 5, 0, 0]);
+        musicVisualizerCtx.fill();
+        
+        // Add mirror effect
+        musicVisualizerCtx.globalAlpha = 0.3;
+        musicVisualizerCtx.beginPath();
+        musicVisualizerCtx.roundRect(x, height - barHeight - 10, barWidth - 2, barHeight * 0.3, [5, 5, 0, 0]);
+        musicVisualizerCtx.fill();
+        musicVisualizerCtx.globalAlpha = 1;
+        
+        x += barWidth;
+      }
+      
+      // Send audio data to assistant via WebSocket
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const audioData = Array.from(audioDataArray);
+        ws.send('AUDIO_DATA:' + JSON.stringify(audioData));
+      }
+    }
+  </script>
+</body>
+</html>

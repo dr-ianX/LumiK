@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LumiK Experience</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    :root {
+      --speed: 5;
+      --brightness: 100%;
+      --effect-brightness: 100%;
+    }
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
+    #overlay { position:absolute; top:0; left:0; width:100%; height:100%; filter:brightness(var(--brightness)); }
+    #effect-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; transition:opacity 1s ease-in-out; }
+    #particles-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none; }
+    #text-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:3; display:flex; align-items:center; justify-content:center; pointer-events:none; overflow:hidden; }
+    #canvas-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none; transition:opacity 1s ease-in-out; }
+    #transition-overlay { position:absolute; top:0; left:0; width:100%; height:100%; z-index:4; pointer-events:none; opacity:0; transition:opacity 0.5s ease-in-out; background:#000; }
+    .text-message { color: #ffffff; font-weight:bold; text-shadow:0 0 15px currentColor, 0 0 30px currentColor; white-space:nowrap; 
+                   animation: scrollText linear infinite; padding:20px; font-family:'Arial Black', sans-serif; }
+    #msg { position:absolute; top:20px; left:0; width:100%; text-align:center; 
+           color:#fff; font-family:sans-serif; text-shadow:0 0 10px #000;
+           font-size:1.5em; z-index:20; padding:10px; background:rgba(0,0,0,0.5); 
+           animation: pulse 2s infinite; transition:opacity 1s; }
+    #connection-status { position:absolute; bottom:15px; right:15px; color:#0f0; 
+                         font-family:sans-serif; font-size:1em; z-index:20; background:rgba(0,0,0,0.6); padding:5px 10px; border-radius:10px; }
+    #fullscreen-btn { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); color:#fff; 
+                     border:1px solid #fff; border-radius:5px; padding:5px 10px; z-index:30; cursor:pointer; }
+    #keep-awake-btn { position:absolute; top:60px; right:10px; background:rgba(0,255,0,0.5); color:#fff; 
+                     border:1px solid #0f0; border-radius:5px; padding:5px 10px; z-index:30; cursor:pointer; }
+    
+    /* Animaciones */
+    @keyframes scrollText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    @keyframes pulse {
+      0% { opacity:0.7; }
+      50% { opacity:1; }
+      100% { opacity:0.7; }
+    }
+    
+    /* Efecto de fondo sutil para mantener actividad */
+    .keep-awake-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, #000, #111, #000);
+      animation: awakeBg 15s infinite linear;
+      opacity: 0.01;
+      z-index: -1;
+    }
+    
+    @keyframes awakeBg {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+    
+    /* FX */
+    .pulse { 
+      background: radial-gradient(circle, rgba(255,0,0,0.8), rgba(0,0,0,0));
+      animation: pulseEffect calc(1.5s / var(--speed)) infinite ease-in-out; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .rainbow { 
+      background: linear-gradient(45deg, 
+        #ff0000, #ff8000, #ffff00, #80ff00, 
+        #00ff00, #00ff80, #00ffff, #0080ff, 
+        #0000ff, #8000ff, #ff00ff, #ff0080, #ff0000); 
+      background-size: 1000% 1000%;
+      animation: rainbowEffect calc(12s / var(--speed)) infinite linear; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .stars { 
+      background: #000;
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .waves { 
+      background: linear-gradient(45deg, #0ff, #00f, #0ff, #00f, #0ff); 
+      background-size: 400% 400%;
+      animation: waveEffect calc(8s / var(--speed)) infinite; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .spiral { 
+      background: conic-gradient(
+        #f00, #f90, #ff0, #0f0, 
+        #0ff, #00f, #90f, #f0f, #f00
+      );
+      animation: spiralEffect 10s infinite linear; 
+      border-radius: 50%;
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .fire { 
+      background: linear-gradient(to bottom, #000, #f00, #ff0, rgb(255, 68, 0));
+      animation: fireEffect calc(3s / var(--speed)) infinite linear; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .nebula { 
+      background: radial-gradient(circle at 20% 30%, rgba(128,0,128,0.8), transparent 40%),
+                 radial-gradient(circle at 80% 70%, rgba(0,0,255,0.8), transparent 40%),
+                 #000;
+      animation: nebulaEffect calc(20s / var(--speed)) infinite linear; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .lightning { 
+      background: #000;
+      animation: lightningEffect calc(0.8s / var(--speed)) infinite; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .rain { 
+      background: #000;
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .galaxy { 
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1), transparent 40%),
+                 radial-gradient(circle at 80% 70%, rgba(0,255,255,0.2), transparent 40%),
+                 radial-gradient(circle at 50% 50%, rgba(255,0,255,0.15), transparent 50%),
+                 #000;
+      background-size: 300% 300%;
+      animation: galaxyEffect calc(30s / var(--speed)) infinite linear; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .laser { 
+      background: linear-gradient(90deg, 
+        #f00, #00f, #f00, #00f
+      );
+      background-size: 300% 100%;
+      animation: laserEffect calc(3s / var(--speed)) infinite linear; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    .disco { 
+      background: conic-gradient(
+        #f00, #ff0, #0f0, #0ff, 
+        #00f, #f0f, #f00
+      );
+      animation: discoEffect calc(0.5s / var(--speed)) infinite; 
+      filter: brightness(var(--effect-brightness));
+    }
+    
+    /* Keyframes para efectos */
+    @keyframes pulseEffect {
+      0%, 100% { opacity:0.3; transform:scale(0.8); }
+      50% { opacity:1; transform:scale(1.1); }
+    }
+    
+    @keyframes rainbowEffect {
+      0% { background-position:0% 50%; }
+      100% { background-position:100% 50%; }
+    }
+    
+    @keyframes waveEffect {
+      0% { background-position:0% 50%; }
+      50% { background-position:100% 50%; }
+      100% { background-position:0% 50%; }
+    }
+    
+    @keyframes spiralEffect {
+      0% { transform:rotate(0deg) scale(1); }
+      100% { transform:rotate(360deg) scale(1); }
+    }
+    
+    @keyframes fireEffect {
+      0% { background-position:0% 0%; filter:hue-rotate(0deg); }
+      100% { background-position:0% 100%; filter:hue-rotate(90deg); }
+    }
+    
+    @keyframes nebulaEffect {
+      0% { background-position:0% 0%; }
+      100% { background-position:100% 100%; }
+    }
+    
+    @keyframes lightningEffect {
+      0%, 85% { background:#000; }
+      5%, 10% { background:#00f; }
+      15%, 20% { background:#0ff; }
+    }
+    
+    @keyframes galaxyEffect {
+      0% { background-position:0% 0%; }
+      100% { background-position:100% 100%; }
+    }
+    
+    @keyframes laserEffect {
+      0% { background-position:0% 50%; }
+      100% { background-position:100% 50%; }
+    }
+    
+    @keyframes discoEffect {
+      0% { filter:hue-rotate(0deg); }
+      100% { filter:hue-rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="keep-awake-bg"></div>
+    <div id="effect-layer"></div>
+    <canvas id="canvas-layer"></canvas>
+    <div id="particles-layer"></div>
+    <div id="text-layer"></div>
+    <div id="transition-overlay"></div>
+    <div id="msg">Conéctate a la red WiFi <strong>LumiK</strong></div>
+    <div id="connection-status">Conectando...</div>
+    <div id="fullscreen-btn">Pantalla Completa</div>
+    <div id="keep-awake-btn">Mantener Pantalla Activa</div>
+  </div>
+  
+  <script>
+    const effectLayer = document.getElementById('effect-layer');
+    const particlesLayer = document.getElementById('particles-layer');
+    const textLayer = document.getElementById('text-layer');
+    const canvasLayer = document.getElementById('canvas-layer');
+    const transitionOverlay = document.getElementById('transition-overlay');
+    const statusDiv = document.getElementById('connection-status');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const keepAwakeBtn = document.getElementById('keep-awake-btn');
+    let currentEffect = '';
+    let ws;
+    let particles = [];
+    let particleInterval;
+    let vibrationInterval;
+    let wakeLock = null;
+    let canvasCtx = null;
+    let canvasAnimationId = null;
+    let audioContext = null;
+    let analyser = null;
+    let audioData = null;
+    let transitionInProgress = false;
+    
+    // Music Visualizer Variables
+    let musicVisualizerCanvas = null;
+    let musicVisualizerCtx = null;
+    let musicVisualizerAnimationId = null;
+    let receivedAudioData = null;
+    
+    // Función para mantener pantalla activa
+    async function keepScreenAwake() {
+      try {
+        // Intenta usar la API Wake Lock
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          statusDiv.textContent = "Pantalla activa";
+          statusDiv.style.color = "#0f0";
+          keepAwakeBtn.textContent = "✓ Pantalla Activa";
+          keepAwakeBtn.style.background = "rgba(0,255,0,0.7)";
+          return true;
+        }
+        
+        // Plan B: Técnica de movimiento imperceptible
+        const movePixel = document.createElement('div');
+        movePixel.style.position = 'absolute';
+        movePixel.style.top = '0';
+        movePixel.style.left = '0';
+        movePixel.style.width = '1px';
+        movePixel.style.height = '1px';
+        movePixel.style.backgroundColor = 'transparent';
+        movePixel.style.animation = 'movePixel 25s linear infinite';
+        
+        document.head.innerHTML += `
+          <style>
+            @keyframes movePixel {
+              0% { transform: translate(0,0); }
+              50% { transform: translate(1px,1px); }
+              100% { transform: translate(0,0); }
+            }
+          </style>
+        `;
+        
+        document.body.appendChild(movePixel);
+        keepAwakeBtn.textContent = "✓ Método Alternativo";
+        keepAwakeBtn.style.background = "rgba(255,165,0,0.7)";
+        return true;
+        
+      } catch (err) {
+        console.error('Error activando pantalla:', err);
+        keepAwakeBtn.textContent = "Error. Toca pantalla";
+        keepAwakeBtn.style.background = "rgba(255,0,0,0.7)";
+        return false;
+      }
+    }
+    
+    // Función para entrar en pantalla completa
+    function requestFullscreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+      keepScreenAwake();
+    }
+    
+    // Iniciar vibración
+    function startVibration(bpm) {
+      stopVibration();
+      if (bpm <= 0) return;
+      
+      const intervalMs = 60000 / bpm;
+      vibrationInterval = setInterval(() => {
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
+        }
+      }, intervalMs);
+    }
+    
+    // Vibración continua para el buzzer
+    function startContinuousVibration() {
+      stopVibration();
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 100, 100, 100]);
+      }
+    }
+    
+    // Detener vibración
+    function stopVibration() {
+      if (vibrationInterval) clearInterval(vibrationInterval);
+      if (navigator.vibrate) navigator.vibrate(0);
+    }
+    
+    // Evento para pantalla completa
+    fullscreenBtn.addEventListener('click', requestFullscreen);
+    
+    // Evento para mantener pantalla activa
+    keepAwakeBtn.addEventListener('click', keepScreenAwake);
+    
+    // Conectar WebSocket
+    function connect() {
+      try {
+        ws = new WebSocket('ws://' + location.host + '/ws');
+        
+        ws.onopen = () => {
+          statusDiv.textContent = "Conectado";
+          statusDiv.style.color = "#0f0";
+          requestFullscreen();
+          keepScreenAwake();
+        };
+        
+        ws.onmessage = evt => {
+          const msg = evt.data;
+          
+          if(msg.startsWith('COLOR:')) {
+            const [r, g, b] = msg.substring(6).split(',').map(Number);
+            applyColor(r, g, b);
+          }
+          else if(msg.startsWith('EFFECT:')) {
+            const effectName = msg.substring(7);
+            applyEffect(effectName);
+          }
+          else if(msg.startsWith('SPEED:')) {
+            const speed = msg.substring(6);
+            applyTempo(speed);
+          }
+          else if(msg.startsWith('BPM:')) {
+            const bpm = msg.substring(4);
+            startVibration(bpm);
+          }
+          else if(msg.startsWith('BRIGHTNESS:')) {
+            const brightness = msg.substring(11);
+            applyBrightness(brightness);
+          }
+          else if(msg.startsWith('TEXT:')) {
+            const data = msg.substring(5).split('|');
+            if(data.length === 3) showText(data[0], data[1], data[2]);
+          }
+          else if(msg.startsWith('MULTICOLOR:')) {
+            const data = msg.substring(11).split('|');
+            applyMultiColor(data);
+          }
+          else if(msg === 'CLEAR:ALL') {
+            clearAll();
+          }
+          else if(msg === 'BUZZER:START') {
+            startContinuousVibration();
+          }
+          else if(msg === 'BUZZER:STOP') {
+            stopVibration();
+          }
+          else if(msg.startsWith('AUDIO_DATA:')) {
+            const audioData = JSON.parse(msg.substring(10));
+            receivedAudioData = new Uint8Array(audioData);
+            if (!musicVisualizerAnimationId) {
+              startMusicVisualizer();
+            }
+          }
+        };
+        
+        ws.onclose = () => {
+          statusDiv.textContent = "Desconectado. Reconectando...";
+          statusDiv.style.color = "#ff5555";
+          setTimeout(connect, 2000);
+          stopVibration();
+        };
+        
+        ws.onerror = (err) => {
+          statusDiv.textContent = "Error de conexión";
+          statusDiv.style.color = "#ff5555";
+        };
+      } catch (error) {
+        statusDiv.textContent = "Error: " + error.message;
+        statusDiv.style.color = "#ff5555";
+        setTimeout(connect, 2000);
+      }
+    }
+    
+    // Aplicar color
+    function applyColor(r, g, b) {
+      stopEffects();
+      effectLayer.className = '';
+      effectLayer.style.background = `rgb(${r},${g},${b})`;
+      currentEffect = '';
+    }
+    
+    // Aplicar efecto
+    function applyEffect(effectName) {
+      if(transitionInProgress) return;
+      
+      // Si es el mismo efecto, no hacer nada
+      if(currentEffect === effectName) return;
+      
+      transitionInProgress = true;
+      
+      // Fade out del efecto actual
+      effectLayer.style.opacity = '0';
+      canvasLayer.style.opacity = '0';
+      
+      setTimeout(() => {
+        // Detener efectos anteriores
+        stopEffects();
+        
+        // Aplicar nuevo efecto
+        effectLayer.className = effectName;
+        currentEffect = effectName;
+        startEffects(effectName);
+        
+        // Fade in del nuevo efecto
+        setTimeout(() => {
+          effectLayer.style.opacity = '1';
+          canvasLayer.style.opacity = '1';
+          transitionInProgress = false;
+        }, 100);
+      }, 500); // Esperar a que termine el fade out
+    }
+    
+    // Aplicar tempo
+    function applyTempo(speed) {
+      document.documentElement.style.setProperty('--speed', speed);
+    }
+    
+    // Aplicar brillo
+    function applyBrightness(brightness) {
+      document.documentElement.style.setProperty('--brightness', brightness + '%');
+      document.documentElement.style.setProperty('--effect-brightness', (brightness / 100) * 1.2);
+    }
+    
+    // Aplicar multicolor (gradiente)
+    function applyMultiColor(data) {
+      stopEffects();
+      effectLayer.className = '';
+      currentEffect = '';
+      
+      // data[0] = color1 r,g,b
+      // data[1] = color2 r,g,b
+      // data[2] = direction
+      // data[3+] = additional colors (optional)
+      
+      const color1 = data[0].split(',').map(Number);
+      const color2 = data[1].split(',').map(Number);
+      const direction = data[2];
+      
+      let gradient;
+      
+      if(direction === 'horizontal') {
+        gradient = `linear-gradient(90deg, rgb(${color1.join(',')}), rgb(${color2.join(',')}))`;
+      } else if(direction === 'vertical') {
+        gradient = `linear-gradient(180deg, rgb(${color1.join(',')}), rgb(${color2.join(',')}))`;
+      } else if(direction === 'diagonal') {
+        gradient = `linear-gradient(45deg, rgb(${color1.join(',')}), rgb(${color2.join(',')}))`;
+      } else if(direction === 'radial') {
+        gradient = `radial-gradient(circle, rgb(${color1.join(',')}), rgb(${color2.join(',')}))`;
+      }
+      
+      // Agregar colores adicionales si existen
+      if(data.length > 3) {
+        const additionalColors = data.slice(3).map(c => `rgb(${c})`).join(', ');
+        gradient = gradient.replace(`rgb(${color2.join(',')})`, `rgb(${color2.join(',')}), ${additionalColors}`);
+      }
+      
+      effectLayer.style.background = gradient;
+    }
+    
+    // Mostrar texto
+    function showText(text, size, speed) {
+      textLayer.innerHTML = '';
+      const textElement = document.createElement('div');
+      textElement.className = 'text-message';
+      textElement.textContent = text;
+      textElement.style.fontSize = size + '%';
+      textElement.style.animationDuration = (20 / speed) + 's';
+      textElement.style.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+      textLayer.appendChild(textElement);
+    }
+    
+    // Limpiar todo
+    function clearAll() {
+      stopEffects();
+      clearText();
+      effectLayer.className = '';
+      effectLayer.style.background = '';
+      currentEffect = '';
+    }
+    
+    // Limpiar texto
+    function clearText() {
+      textLayer.innerHTML = '';
+    }
+    
+    // Iniciar efectos especiales
+    function startEffects(effectName) {
+      stopEffects();
+      
+      if(effectName === 'stars' || effectName === 'rain') {
+        createParticles(effectName);
+        particleInterval = setInterval(() => createParticles(effectName), 300);
+      }
+      else if(effectName === 'aurora') {
+        startAurora();
+      }
+      else if(effectName === 'matrix') {
+        startMatrix();
+      }
+      else if(effectName === 'plasma') {
+        startPlasma();
+      }
+      else if(effectName === 'audio') {
+        startAudioReactive();
+      }
+      else if(effectName === 'fireworks') {
+        startFireworks();
+      }
+      else if(effectName === 'vortex') {
+        startVortex();
+      }
+    }
+    
+    // Detener efectos especiales
+    function stopEffects() {
+      particlesLayer.innerHTML = '';
+      particles = [];
+      if(particleInterval) clearInterval(particleInterval);
+      if(canvasAnimationId) cancelAnimationFrame(canvasAnimationId);
+      if(canvasCtx) {
+        canvasCtx.clearRect(0, 0, canvasLayer.width, canvasLayer.height);
+        canvasLayer.style.display = 'none';
+      }
+    }
+    
+    // Inicializar canvas
+    function initCanvas() {
+      canvasLayer.width = window.innerWidth;
+      canvasLayer.height = window.innerHeight;
+      canvasCtx = canvasLayer.getContext('2d');
+      canvasLayer.style.display = 'block';
+    }
+    
+    // Efecto Aurora (Canvas)
+    function startAurora() {
+      initCanvas();
+      let time = 0;
+      
+      function draw() {
+        const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--speed')) || 5;
+        const brightness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--effect-brightness')) || 1;
+        
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        canvasCtx.fillRect(0, 0, canvasLayer.width, canvasLayer.height);
+        
+        for(let i = 0; i < 5; i++) {
+          const gradient = canvasCtx.createLinearGradient(0, 0, canvasLayer.width, canvasLayer.height);
+          const hue = (time * 10 + i * 60) % 360;
+          gradient.addColorStop(0, `hsla(${hue}, 80%, 50%, 0)`);
+          gradient.addColorStop(0.5, `hsla(${hue + 30}, 80%, 60%, ${0.3 * brightness})`);
+          gradient.addColorStop(1, `hsla(${hue + 60}, 80%, 50%, 0)`);
+          
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(0, canvasLayer.height);
+          
+          for(let x = 0; x <= canvasLayer.width; x += 20) {
+            const y = canvasLayer.height * 0.3 + 
+                      Math.sin((x + time * 50 * speed) * 0.01 + i) * 100 +
+                      Math.sin((x + time * 30 * speed) * 0.02 + i * 2) * 50;
+            canvasCtx.lineTo(x, y);
+          }
+          
+          canvasCtx.lineTo(canvasLayer.width, canvasLayer.height);
+          canvasCtx.closePath();
+          canvasCtx.fillStyle = gradient;
+          canvasCtx.fill();
+        }
+        
+        time += 0.02;
+        canvasAnimationId = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Efecto Matrix (Canvas)
+    function startMatrix() {
+      initCanvas();
+      const columns = Math.floor(canvasLayer.width / 20);
+      const drops = Array(columns).fill(0);
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяЀЁЂЃЄЅІЇЈЉЊЋЌЎЏѐёђѓєѕіїјљњћќўџԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖաբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆאבטגדהוזחטיכלמנסעפצקרשתךםןףץܐܒܓܕܗܘܙܚܛܝܟܠܡܢܣܥܦܨܩܪܫܬءآأؤإئاابةتثجحخدذرزسشصضطظعغفقكلمنهوىيابپتٹثجچحخدڈذرڑزژسشصضطظعغفقکگلمنںوہھءیےހށނރބޅކއވމފދތލގޏސޑޒޓޔޕޖޗޘޙޚޛޜޝޞޟअआइईउऊऋॠऌॡएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहাআইঈউঊঋএঐওঔকখগঘঙচছজঝঞটঠডঢণতথদধনপফবভমযরলশষসহਅਆਇਈਉਊਏਐਓਔਕਖਗਘਙਚਛਜਝਞਟਠਡਢਣਤਥਦਧਨਪਫਬਭਮਯਰਲਵਸ਼ਸਹઅઆઇઈઉઊઋએઐઓઔકખગઘઙચછજઝઞટઠડઢણતથદધનપફબભમયરલવશષસહଅଆଇଈଉଊଋଏଐଓଔକଖଗଘଙଚଛଜଝଞଟଠଡଢଣତଥଦଧନପଫବଭମଯରଲଶଷସହஅஆஇஈஉஊஎஏஐஒஓஔகஙசஜஞடணதநபமயரலவழளறனஷஸஹఅఆఇఈఉఊఋఎఏఐఒఓఔకఖగఘఙచఛజఝఞటఠడఢణతథదధనపఫబభమయరలవశషసహళక్షಅಆಇಈಉಊಋಎಏಐಒಓಔಕಖಗಘಙಚಛಜಝಞಟಠಡಢಣತಥದಧನಪಫಬಭಮಯರಲವಶಷಸಹಳೞഅആഇഈഉഊഋഎഏഐഒഓഔകഖഗഘങചഛജഝഞടഠഡഢണതഥദധനപഫബഭമയരലവശഷസഹളഴറකඛගඝඟචඡජඣඤටඨඩඪණතථදධනපඵබභමයරලවශෂසහළෆกขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮກຂຄງຈສຊຍດຕຖທນບປຜຝພຟມຢຣລວສຫອຮကခဂဃငစဆဇဈဉညဋဌဍဎဏတထဒဓနပဖဗဘမယရလဝသဟအកខគឃងចឆជឈញដឋឌឍណតថទធនបផពភមយរលវសហឡអᠠᠡᠢᠣᠤᠥᠦᠧᠨᠩᠪᠫᠬᠭᠮᠯᠰᠱᠲᠳᠴᠵᠶᠷᠸᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟᛆᚱᚴᚼᚾᛁᛃᛅᛋᛏᛒᛘᛚᛦᚨᛒᚳᛞᛖᚠᚷᚻᛁᛂᚳᛚᛗᚾᚩᛈᛩᚱᛋᛏᚢᚹᛪᚣᛉⲀⲂⲄⲆⲈⲊⲌⲎⲐⲒⲔⲖⲘⲚⲜⲞⲠⲢⲤⲦⲨⲪⲬⲮⲰꜢꜤ𓀀𓁐𓂀𓃰𓄿𓅓𓆣𓇋𓈖𓉔𓊪𓋴𓌳𓍿𓎛𓏏𐤀𐤁𐤂𐤃𐤄𐤅𐤆𐤇𐤈𐤉𐤊𐤋𐤌𐤍𐤎𐤏𐤐𐤑𐤒𐤓𐤔𐤕𐎀𐎁𐎂𐎃𐎄𐎅𐎆𐎇𐎈𐎉𐎊𐎋𐎌𐎍𐎎𐎏𐎐𐎑𐎒𐎓𐎔𐎕𐎖𐎗𐎘𐎙𐎚𐡀𐡁𐡂𐡃𐡄𐡅𐡆𐡇𐡈𐡉𐡊𐡋𐡌𐡍𐡎𐡏𐡐𐡑𐡒𐡓𐡔𐡕𐌀𐌁𐌂𐌃𐌄𐌅𐌆𐌇𐌈𐌉𐌊𐌋𐌌𐌍𐌎𐌏𐍀𐍁𐍂𐍃𐍄𐍅𐍆𐍇𐍈𐍉ᚁᚂᚃᚄᚅᚆᚇᚈᚉᚊᚋᚌᚍᚎᚏㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙあいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンᄀᄁᄂᄃᄄᄅᄆᄇᄈᄉᄊᄋᄌᄍᄎᄏᄐᄑᄒ가각간갇갈감갑값갓강개객갠갤갬갭갯갱갸걍거걱건걷걸검겁것겅게겐겔겜겝겨격견결겸경고곡곤골곰곱곳공과관광괜괴굉교구국군굴굼궁권귀규그극근글금급긋긍기긴길김깁깃깅ⰀⰁⰂⰃⰄⰅⰆⰇⰈⰉⰊⰋⰌⰍⰎⰏⰐⰑⰒⰓⰔⰕⰖⰗⰘⰙⰛⰜⰝⴰⴱⴳⴷⴹⴻⴼⴽⵀⵃⵄⵅⵇⵉⵊⵍⵎⵏⵓⵔⵕⵖⵙⵚⵛⵜⵟⵡⵢⵣႠႡႢႣႤႥႦႧႨႩႪႫႬႭႮႯႰႱႲႳႴႵႶႷႸႹႺႻႼႽႾႿაბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ0123456789٠١٢٣٤٥٦٧٨٩०१२३४५६७८९০১২৩৪৫৬৭৮৯੦੧੨੩੪੫੬੭੮੯૦૧૨૩૪૫૬૭૮૯୦୧୨୩୪୫୬୭୮୯௦௧௨௩௪௫௬௭௮௯౦౧౨౩౪౫౬౭౮౯೦೧೨೩೪೫೬೭೮೯൦൧൨൩൪൫൬൭൮൯☰☱☲☳☴☵☶☷☯☢☣⌘⌬⌭⌯⌖⌗⌘⌥⌫⌬⌭∆∇∈∉∞≈≠≤≥⊕⊗⊙⊚⊛⊜⊝⊞⊟⊠⊡░▒▓█▌▐■□▪▫▲△▼▽◆◇○●◎◉◌⠁⠂⠄⡀⢀⠈⠐⠠⢁⢂⢄⡁⡂⡄々〆〤゠ー「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟𒀀𒀁𒀂𒀃𒀄𒀅𒀆𒀇𒀈𒀉𒀊𒀋𒀌𒀍𒀎𒀏𖤐𖣘𖦹𖧷𖨆𖩥𖫔𖬺⚛⚙⚚⚜⚡☽☾♁♆♇♒♈♉♊♋♌♍♎♏♐♑♒♓';
+      
+      function draw() {
+        const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--speed')) || 5;
+        const brightness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--effect-brightness')) || 1;
+        
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        canvasCtx.fillRect(0, 0, canvasLayer.width, canvasLayer.height);
+        
+        canvasCtx.fillStyle = `rgba(255, 10, 10, ${brightness})`;
+        canvasCtx.font = '20px monospace';
+        
+        for(let i = 0; i < drops.length; i++) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          canvasCtx.fillText(char, i * 20, drops[i] * 20);
+          
+          if(drops[i] * 20 > canvasLayer.height && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i] += speed * 0.5;
+        }
+        
+        canvasAnimationId = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Efecto Plasma (Canvas)
+    function startPlasma() {
+      initCanvas();
+      let time = 0;
+      
+      function draw() {
+        const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--speed')) || 5;
+        const brightness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--effect-brightness')) || 1;
+        
+        const imageData = canvasCtx.createImageData(canvasLayer.width, canvasLayer.height);
+        const data = imageData.data;
+        
+        for(let y = 0; y < canvasLayer.height; y++) {
+          for(let x = 0; x < canvasLayer.width; x++) {
+            const index = (y * canvasLayer.width + x) * 4;
+            
+            const v1 = Math.sin(x * 0.02 + time);
+            const v2 = Math.sin(y * 0.02 + time);
+            const v3 = Math.sin((x + y) * 0.02 + time);
+            const v4 = Math.sin(Math.sqrt(x * x + y * y) * 0.02 + time);
+            
+            const v = (v1 + v2 + v3 + v4) / 4;
+            
+            const hue = (v * 180 + time * 50) % 360;
+            const rgb = hslToRgb(hue / 360, 0.8, 0.5);
+            
+            data[index] = rgb[0] * brightness;
+            data[index + 1] = rgb[1] * brightness;
+            data[index + 2] = rgb[2] * brightness;
+            data[index + 3] = 255;
+          }
+        }
+        
+        canvasCtx.putImageData(imageData, 0, 0);
+        time += 0.03 * speed;
+        canvasAnimationId = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Efecto Audio Reactive (Canvas)
+    async function startAudioReactive() {
+      initCanvas();
+      
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        audioData = new Uint8Array(analyser.frequencyBinCount);
+      } catch(e) {
+        console.log('Audio no disponible, usando modo simulado');
+        audioData = new Uint8Array(128);
+      }
+      
+      let time = 0;
+      
+      function draw() {
+        const brightness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--effect-brightness')) || 1;
+        
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        canvasCtx.fillRect(0, 0, canvasLayer.width, canvasLayer.height);
+        
+        if(analyser) {
+          analyser.getByteFrequencyData(audioData);
+        } else {
+          // Simulación
+          for(let i = 0; i < audioData.length; i++) {
+            audioData[i] = Math.sin(time + i * 0.1) * 100 + 100;
+          }
+        }
+        
+        const barWidth = canvasLayer.width / audioData.length;
+        
+        for(let i = 0; i < audioData.length; i++) {
+          const barHeight = (audioData[i] / 255) * canvasLayer.height * 0.8;
+          const hue = (i / audioData.length) * 360 + time * 50;
+          
+          canvasCtx.fillStyle = `hsla(${hue}, 80%, 60%, ${brightness})`;
+          canvasCtx.fillRect(i * barWidth, canvasLayer.height - barHeight, barWidth - 2, barHeight);
+          
+          // Círculos reactivos
+          const radius = (audioData[i] / 255) * 50;
+          canvasCtx.beginPath();
+          canvasCtx.arc(canvasLayer.width / 2, canvasLayer.height / 2, radius, 0, Math.PI * 2);
+          canvasCtx.fillStyle = `hsla(${hue}, 80%, 60%, ${0.3 * brightness})`;
+          canvasCtx.fill();
+        }
+        
+        time += 0.05;
+        canvasAnimationId = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Efecto Fireworks (Canvas)
+    function startFireworks() {
+      initCanvas();
+      const fireworks = [];
+      const particles = [];
+      
+      function createFirework() {
+        const x = Math.random() * canvasLayer.width;
+        const y = canvasLayer.height;
+        const targetY = Math.random() * canvasLayer.height * 0.5;
+        const hue = Math.random() * 360;
+        
+        fireworks.push({
+          x, y, targetY, hue,
+          vx: (Math.random() - 0.5) * 2,
+          vy: -Math.random() * 3 - 8,
+          exploded: false
+        });
+      }
+      
+      function createExplosion(x, y, hue) {
+        for(let i = 0; i < 50; i++) {
+          const angle = (Math.PI * 2 / 50) * i;
+          const velocity = Math.random() * 4 + 2;
+          particles.push({
+            x, y,
+            vx: Math.cos(angle) * velocity,
+            vy: Math.sin(angle) * velocity,
+            hue,
+            alpha: 1,
+            decay: Math.random() * 0.02 + 0.01
+          });
+        }
+      }
+      
+      function draw() {
+        const brightness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--effect-brightness')) || 1;
+        
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        canvasCtx.fillRect(0, 0, canvasLayer.width, canvasLayer.height);
+        
+        // Actualizar fuegos artificiales
+        for(let i = fireworks.length - 1; i >= 0; i--) {
+          const fw = fireworks[i];
+          fw.x += fw.vx;
+          fw.y += fw.vy;
+          fw.vy += 0.1;
+          
+          canvasCtx.beginPath();
+          canvasCtx.arc(fw.x, fw.y, 3, 0, Math.PI * 2);
+          canvasCtx.fillStyle = `hsla(${fw.hue}, 100%, 70%, ${brightness})`;
+          canvasCtx.fill();
+          
+          if(fw.vy >= 0 || fw.y <= fw.targetY) {
+            createExplosion(fw.x, fw.y, fw.hue);
+            fireworks.splice(i, 1);
+          }
+        }
+        
+        // Actualizar partículas
+        for(let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.05;
+          p.alpha -= p.decay;
+          
+          if(p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+          
+          canvasCtx.beginPath();
+          canvasCtx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+          canvasCtx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${p.alpha * brightness})`;
+          canvasCtx.fill();
+        }
+        
+        if(Math.random() < 0.05) createFirework();
+        canvasAnimationId = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Efecto Vortex (Canvas)
+    function startVortex() {
+      initCanvas();
+      let time = 0;
+      
+      function draw() {
+        const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--speed')) || 5;
+        const brightness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--effect-brightness')) || 1;
+        
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        canvasCtx.fillRect(0, 0, canvasLayer.width, canvasLayer.height);
+        
+        const centerX = canvasLayer.width / 2;
+        const centerY = canvasLayer.height / 2;
+        
+        for(let i = 0; i < 3; i++) {
+          canvasCtx.beginPath();
+          
+          for(let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+            const radius = 50 + i * 80 + Math.sin(angle * 5 + time) * 20;
+            const x = centerX + Math.cos(angle + time + i) * radius;
+            const y = centerY + Math.sin(angle + time + i) * radius;
+            
+            if(angle === 0) {
+              canvasCtx.moveTo(x, y);
+            } else {
+              canvasCtx.lineTo(x, y);
+            }
+          }
+          
+          canvasCtx.closePath();
+          const hue = (time * 50 + i * 120) % 360;
+          canvasCtx.strokeStyle = `hsla(${hue}, 80%, 60%, ${brightness})`;
+          canvasCtx.lineWidth = 3;
+          canvasCtx.stroke();
+        }
+        
+        time += 0.02 * speed;
+        canvasAnimationId = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Helper: HSL to RGB
+    function hslToRgb(h, s, l) {
+      let r, g, b;
+      
+      if(s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if(t < 0) t += 1;
+          if(t > 1) t -= 1;
+          if(t < 1/6) return p + (q - p) * 6 * t;
+          if(t < 1/2) return q;
+          if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+    
+    // Crear partículas
+    function createParticles(type) {
+      const particleCount = type === 'stars' ? 20 : 30;
+      const colors = type === 'stars' ? 
+        ['#ffffff', '#ffffcc', '#ccffff'] : 
+        ['#00ffff', '#0088ff', '#00ffcc'];
+      
+      for(let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        
+        const x = Math.random() * 100;
+        const y = type === 'stars' ? Math.random() * 100 : -10;
+        
+        const size = type === 'stars' ? 
+          (Math.random() * 3 + 1) : 
+          (Math.random() * 5 + 2);
+        
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.background = color;
+        particle.style.left = `${x}%`;
+        particle.style.top = `${y}%`;
+        particle.style.opacity = Math.random() * 0.8 + 0.2;
+        particle.style.boxShadow = `0 0 ${size*2}px ${color}`;
+        
+        // Física mejorada
+        const velocityX = (Math.random() - 0.5) * 2;
+        const velocityY = type === 'stars' ? 
+          (Math.random() * 0.5 + 0.2) : 
+          (Math.random() * 3 + 2);
+        const gravity = type === 'stars' ? 0 : 0.1;
+        const wind = (Math.random() - 0.5) * 0.5;
+        
+        particle.dataset.vx = velocityX;
+        particle.dataset.vy = velocityY;
+        particle.dataset.gravity = gravity;
+        particle.dataset.wind = wind;
+        particle.dataset.x = x;
+        particle.dataset.y = y;
+        
+        const duration = type === 'stars' ? 
+          (Math.random() * 20 + 10) : 
+          (Math.random() * 3 + 1);
+        
+        particle.style.animation = `
+          ${type === 'stars' ? 'starFall' : 'rainDrop'} 
+          ${duration}s 
+          linear 
+          forwards
+        `;
+        
+        particlesLayer.appendChild(particle);
+        particles.push(particle);
+        
+        // Animación con física
+        animateParticle(particle, type, duration * 1000);
+        
+        setTimeout(() => {
+          if(particle.parentNode) {
+            particle.parentNode.removeChild(particle);
+            particles = particles.filter(p => p !== particle);
+          }
+        }, duration * 1000);
+      }
+    }
+    
+    // Animar partícula con física
+    function animateParticle(particle, type, duration) {
+      const startTime = Date.now();
+      const startX = parseFloat(particle.dataset.x);
+      const startY = parseFloat(particle.dataset.y);
+      let vx = parseFloat(particle.dataset.vx);
+      let vy = parseFloat(particle.dataset.vy);
+      const gravity = parseFloat(particle.dataset.gravity);
+      const wind = parseFloat(particle.dataset.wind);
+      
+      function update() {
+        const elapsed = Date.now() - startTime;
+        if(elapsed >= duration) return;
+        
+        // Aplicar física
+        vx += wind * 0.1;
+        vy += gravity;
+        
+        let x = startX + vx * (elapsed / 100);
+        let y = startY + vy * (elapsed / 100);
+        
+        // Para estrellas, movimiento más suave
+        if(type === 'stars') {
+          x = startX + Math.sin(elapsed * 0.001) * 20 + vx * (elapsed / 100);
+          y = startY + vy * (elapsed / 100);
+        }
+        
+        particle.style.left = `${x}%`;
+        particle.style.top = `${y}%`;
+        
+        requestAnimationFrame(update);
+      }
+      
+      update();
+    }
+    
+    // Keyframes dinámicos
+    const styleSheet = document.styleSheets[0];
+    styleSheet.insertRule(`
+      @keyframes starFall {
+        0% { transform: translate(0, 0); opacity:0; }
+        10% { opacity:1; }
+        90% { opacity:1; }
+        100% { transform: translate(${Math.random()*200 - 100}px, 100vh); opacity:0; }
+      }
+    `, styleSheet.cssRules.length);
+    
+    styleSheet.insertRule(`
+      @keyframes rainDrop {
+        0% { transform: translate(0, 0); opacity:1; }
+        100% { transform: translate(${Math.random()*200 - 100}px, 100vh); opacity:0; }
+      }
+    `, styleSheet.cssRules.length);
+    
+    // Ocultar mensaje de conexión después de 5 segundos
+    setTimeout(() => {
+      document.getElementById('msg').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('msg').style.display = 'none';
+      }, 1000);
+    }, 5000);
+    
+    // Music Visualizer Functions
+    function startMusicVisualizer() {
+      if (!musicVisualizerCanvas) {
+        musicVisualizerCanvas = document.createElement('canvas');
+        musicVisualizerCanvas.style.position = 'absolute';
+        musicVisualizerCanvas.style.top = '0';
+        musicVisualizerCanvas.style.left = '0';
+        musicVisualizerCanvas.style.width = '100%';
+        musicVisualizerCanvas.style.height = '100%';
+        musicVisualizerCanvas.style.zIndex = '5';
+        musicVisualizerCanvas.style.pointerEvents = 'none';
+        document.getElementById('overlay').appendChild(musicVisualizerCanvas);
+        
+        musicVisualizerCtx = musicVisualizerCanvas.getContext('2d');
+        musicVisualizerCanvas.width = window.innerWidth;
+        musicVisualizerCanvas.height = window.innerHeight;
+      }
+      
+      drawMusicVisualizer();
+    }
+    
+    function drawMusicVisualizer() {
+      if (!receivedAudioData || !musicVisualizerCtx) {
+        musicVisualizerAnimationId = requestAnimationFrame(drawMusicVisualizer);
+        return;
+      }
+      
+      musicVisualizerAnimationId = requestAnimationFrame(drawMusicVisualizer);
+      
+      const width = musicVisualizerCanvas.width;
+      const height = musicVisualizerCanvas.height;
+      
+      // Clear with fade effect
+      musicVisualizerCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      musicVisualizerCtx.fillRect(0, 0, width, height);
+      
+      const barWidth = (width / receivedAudioData.length) * 2.5;
+      let x = 0;
+      
+      for (let i = 0; i < receivedAudioData.length; i++) {
+        const barHeight = (receivedAudioData[i] / 255) * height * 0.8;
+        
+        // Neon colors based on frequency
+        const hue = (i / receivedAudioData.length) * 360;
+        const saturation = 100;
+        const lightness = 50 + (receivedAudioData[i] / 255) * 20;
+        
+        // Create neon glow effect
+        musicVisualizerCtx.shadowBlur = 20;
+        musicVisualizerCtx.shadowColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        musicVisualizerCtx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        
+        // Draw bar with rounded top
+        musicVisualizerCtx.beginPath();
+        musicVisualizerCtx.roundRect(x, height - barHeight, barWidth - 2, barHeight, [5, 5, 0, 0]);
+        musicVisualizerCtx.fill();
+        
+        // Add mirror effect
+        musicVisualizerCtx.globalAlpha = 0.3;
+        musicVisualizerCtx.beginPath();
+        musicVisualizerCtx.roundRect(x, height - barHeight - 10, barWidth - 2, barHeight * 0.3, [5, 5, 0, 0]);
+        musicVisualizerCtx.fill();
+        musicVisualizerCtx.globalAlpha = 1;
+        
+        x += barWidth;
+      }
+    }
+    
+    // Iniciar conexión
+    connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LumiK Chat</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    :root {
+      --primary: #0ff;
+      --secondary: #f0f;
+      --dark: #111;
+      --panel-bg: rgba(30, 30, 40, 0.9);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--dark); color:#fff; font-family:'Segoe UI', Tahoma, sans-serif; padding:15px; min-height:100vh; }
+    .container { max-width:800px; margin:0 auto; }
+    h1 { text-align:center; color:var(--primary); text-shadow:0 0 15px var(--primary); margin:10px 0 25px; font-size:1.8rem; letter-spacing:1px; }
+    
+    .login-panel { background:var(--panel-bg); border:1px solid rgba(0, 200, 255, 0.3); border-radius:15px; padding:30px; box-shadow:0 5px 20px rgba(0,0,0,0.4), 0 0 15px rgba(0,200,255,0.2); backdrop-filter:blur(5px); text-align:center; }
+    .login-panel input { width:100%; padding:15px; background:rgba(40, 40, 50, 0.7); color:#fff; border:1px solid rgba(100, 200, 255, 0.3); border-radius:10px; margin:15px 0; font-size:1.1rem; }
+    .login-panel button { padding:15px; background:linear-gradient(135deg, var(--primary), #00aaff); color:#000; border:none; border-radius:10px; font-size:1.1rem; font-weight:bold; cursor:pointer; transition:all 0.3s; width:100%; text-transform:uppercase; letter-spacing:1px; box-shadow:0 5px 15px rgba(0,200,255,0.3); }
+    .login-panel button:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,200,255,0.5); }
+    
+    .chat-panel { background:var(--panel-bg); border:1px solid rgba(0, 200, 255, 0.3); border-radius:15px; padding:20px; box-shadow:0 5px 20px rgba(0,0,0,0.4), 0 0 15px rgba(0,200,255,0.2); backdrop-filter:blur(5px); display:none; }
+    .chat-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid rgba(100, 200, 255, 0.2); }
+    .chat-header h2 { color:var(--primary); font-size:1.3rem; }
+    .chat-header .username { color:var(--secondary); font-size:0.9rem; }
+    .chat-header button { padding:8px 15px; background:linear-gradient(135deg, #ff5555, #ff0000); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:0.9rem; }
+    
+    .messages { max-height:400px; overflow-y:auto; background:rgba(20, 20, 30, 0.8); border:1px solid rgba(100, 200, 255, 0.2); border-radius:10px; padding:15px; margin-bottom:15px; }
+    .message { margin-bottom:12px; padding:10px; background:rgba(40, 40, 60, 0.5); border-radius:8px; border-left:3px solid var(--primary); }
+    .message .meta { font-size:0.8rem; color:var(--secondary); margin-bottom:5px; }
+    .message .text { font-size:1rem; color:#fff; }
+    .message .time { font-size:0.7rem; color:#888; margin-top:5px; }
+    .message.own { border-left-color:var(--secondary); background:rgba(60, 40, 80, 0.5); }
+    
+    .input-area { display:flex; gap:10px; }
+    .input-area input { flex:1; padding:12px; background:rgba(40, 40, 50, 0.7); color:#fff; border:1px solid rgba(100, 200, 255, 0.3); border-radius:10px; font-size:1rem; }
+    .input-area button { padding:12px 25px; background:linear-gradient(135deg, var(--primary), #00aaff); color:#000; border:none; border-radius:10px; font-weight:bold; cursor:pointer; transition:all 0.3s; }
+    .input-area button:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(0,200,255,0.5); }
+    
+    .setup-info { background:rgba(255, 170, 0, 0.1); border:1px solid rgba(255, 170, 0, 0.3); border-radius:10px; padding:15px; margin-bottom:15px; font-size:0.9rem; }
+    .setup-info h3 { color:#ffa500; margin-bottom:10px; }
+    .setup-info input { width:100%; padding:10px; background:rgba(40, 40, 50, 0.7); color:#fff; border:1px solid rgba(255, 170, 0, 0.3); border-radius:8px; margin:5px 0; }
+    .setup-info button { padding:10px; background:linear-gradient(135deg, #ffaa00, #ff8800); color:#000; border:none; border-radius:8px; cursor:pointer; margin-top:10px; width:100%; }
+    
+    @media (max-width: 768px) {
+      .container { padding:10px; }
+      h1 { font-size:1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>LumiK Chat</h1>
+    
+    <div id="loginPanel" class="login-panel">
+      <h2>Red Social Efímera</h2>
+      <p style="color:#aaa; margin-bottom:15px;">Solo necesitas un username. Sin registro. Sin datos permanentes.</p>
+      <input type="text" id="usernameInput" placeholder="Tu username..." maxlength="20">
+      <button onclick="joinChat()">Unirse al Chat</button>
+    </div>
+    
+    <div id="chatPanel" class="chat-panel">
+      <div class="chat-header">
+        <h2>💬 Chat Global</h2>
+        <div>
+          <span class="username" id="currentUser"></span>
+          <button onclick="leaveChat()">Salir</button>
+        </div>
+      </div>
+      
+      <div id="setupInfo" class="setup-info">
+        <h3>⚙️ Configuración de Google Sheets</h3>
+        <p style="color:#aaa; margin-bottom:10px;">Ingresa la URL de tu Web App de Google Apps Script:</p>
+        <input type="text" id="googleScriptUrl" placeholder="https://script.google.com/macros/s/..." />
+        <button onclick="saveGoogleScriptUrl()">Guardar Configuración</button>
+      </div>
+      
+      <div id="messages" class="messages">
+        <div style="text-align:center; color:#888; padding:20px;">Cargando mensajes...</div>
+      </div>
+      
+      <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Escribe un mensaje..." maxlength="200" onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let username = '';
+    let googleScriptUrl = localStorage.getItem('lumik_google_script_url') || '';
+    
+    // Cargar URL guardada
+    if (googleScriptUrl) {
+      document.getElementById('googleScriptUrl').value = googleScriptUrl;
+      document.getElementById('setupInfo').style.display = 'none';
+    }
+    
+    function joinChat() {
+      username = document.getElementById('usernameInput').value.trim();
+      if (!username) {
+        alert('Por favor ingresa un username');
+        return;
+      }
+      
+      document.getElementById('loginPanel').style.display = 'none';
+      document.getElementById('chatPanel').style.display = 'block';
+      document.getElementById('currentUser').textContent = '@' + username;
+      
+      loadMessages();
+      
+      // Auto-refresh cada 5 segundos
+      setInterval(loadMessages, 5000);
+    }
+    
+    function leaveChat() {
+      document.getElementById('loginPanel').style.display = 'block';
+      document.getElementById('chatPanel').style.display = 'none';
+      document.getElementById('usernameInput').value = '';
+      username = '';
+    }
+    
+    function saveGoogleScriptUrl() {
+      const url = document.getElementById('googleScriptUrl').value.trim();
+      if (!url) {
+        alert('Por favor ingresa la URL del Web App');
+        return;
+      }
+      
+      googleScriptUrl = url;
+      localStorage.setItem('lumik_google_script_url', url);
+      document.getElementById('setupInfo').style.display = 'none';
+      loadMessages();
+    }
+    
+    async function loadMessages() {
+      if (!googleScriptUrl) {
+        document.getElementById('messages').innerHTML = '<div style="text-align:center; color:#ffa500; padding:20px;">⚙️ Configura la URL de Google Sheets para ver mensajes</div>';
+        return;
+      }
+      
+      try {
+        const response = await fetch(googleScriptUrl);
+        const data = await response.json();
+        
+        if (data && data.length > 1) { // Skip header row
+          const messagesDiv = document.getElementById('messages');
+          messagesDiv.innerHTML = '';
+          
+          // Show last 50 messages in reverse order
+          const messages = data.slice(1).reverse().slice(0, 50);
+          
+          messages.forEach(msg => {
+            const timestamp = msg[0];
+            const msgUsername = msg[1];
+            const msgText = msg[2];
+            
+            if (msgUsername && msgText) {
+              const isOwn = msgUsername.toLowerCase() === username.toLowerCase();
+              const messageDiv = document.createElement('div');
+              messageDiv.className = 'message' + (isOwn ? ' own' : '');
+              messageDiv.innerHTML = `
+                <div class="meta">@${msgUsername}</div>
+                <div class="text">${escapeHtml(msgText)}</div>
+                <div class="time">${formatTime(timestamp)}</div>
+              `;
+              messagesDiv.appendChild(messageDiv);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading messages:', error);
+        document.getElementById('messages').innerHTML = '<div style="text-align:center; color:#ff5555; padding:20px;">Error cargando mensajes. Verifica la URL del Web App.</div>';
+      }
+    }
+    
+    async function sendMessage() {
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput.value.trim();
+      
+      if (!message || !googleScriptUrl) {
+        if (!googleScriptUrl) {
+          alert('Primero configura la URL de Google Sheets');
+        }
+        return;
+      }
+      
+      try {
+        const response = await fetch(googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username,
+            message: message
+          })
+        });
+        
+        messageInput.value = '';
+        
+        // Wait a bit then reload messages
+        setTimeout(loadMessages, 1000);
+        
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Error enviando mensaje. Intenta nuevamente.');
+      }
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+  </script>
+</body>
+</html>
