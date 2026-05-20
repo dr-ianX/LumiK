@@ -92,6 +92,7 @@
   <script>
     let username = '';
     let googleScriptUrl = localStorage.getItem('lumik_google_script_url') || '';
+    let ws = null;
     
     // Cargar URL guardada
     if (googleScriptUrl) {
@@ -110,10 +111,31 @@
       document.getElementById('chatPanel').style.display = 'block';
       document.getElementById('currentUser').textContent = '@' + username;
       
+      // Conectar WebSocket para enviar mensajes a assistant.html
+      connectWebSocket();
+      
       loadMessages();
       
       // Auto-refresh cada 5 segundos
       setInterval(loadMessages, 5000);
+    }
+    
+    function connectWebSocket() {
+      const wsProtocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      ws = new WebSocket(wsProtocol + location.host + '/ws');
+      
+      ws.onopen = () => {
+        console.log('WebSocket conectado para chat');
+      };
+      
+      ws.onerror = (err) => {
+        console.error('Error WebSocket:', err);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket cerrado, reconectando en 5 segundos...');
+        setTimeout(connectWebSocket, 5000);
+      };
     }
     
     function leaveChat() {
@@ -202,6 +224,11 @@
         });
         
         messageInput.value = '';
+        
+        // Enviar mensaje por WebSocket a assistant.html
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(`CHAT:${username}|${message}`);
+        }
         
         // Wait a bit then reload messages
         setTimeout(loadMessages, 1000);

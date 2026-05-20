@@ -33,6 +33,42 @@
     #controls-container:hover #fullscreen-btn,
     #controls-container:hover #keep-awake-btn { opacity:1; }
     
+    /* Chat flotante tipo Bejeweled */
+    #chat-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; pointer-events:none; overflow:hidden; }
+    .chat-bubble {
+      position:absolute;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      text-shadow:0 0 10px rgba(0,0,0,0.8);
+      box-shadow:0 0 20px rgba(255,255,255,0.5), inset 0 0 20px rgba(255,255,255,0.3);
+      animation: floatBubble 8s ease-in-out infinite, pulseBubble 2s ease-in-out infinite;
+      pointer-events:auto;
+      cursor:pointer;
+      transition:transform 0.3s ease;
+    }
+    .chat-bubble:hover {
+      transform:scale(1.5) !important;
+      z-index:100;
+    }
+    .chat-bubble.small { width:40px; height:40px; font-size:10px; }
+    .chat-bubble.medium { width:60px; height:60px; font-size:12px; }
+    .chat-bubble.large { width:80px; height:80px; font-size:14px; }
+    .chat-bubble.xlarge { width:100px; height:100px; font-size:16px; }
+    
+    @keyframes floatBubble {
+      0%, 100% { transform:translateY(0) scale(1); }
+      25% { transform:translateY(-20px) scale(1.1); }
+      50% { transform:translateY(0) scale(1); }
+      75% { transform:translateY(20px) scale(0.9); }
+    }
+    @keyframes pulseBubble {
+      0%, 100% { box-shadow:0 0 20px rgba(255,255,255,0.5), inset 0 0 20px rgba(255,255,255,0.3); }
+      50% { box-shadow:0 0 40px rgba(255,255,255,0.8), inset 0 0 30px rgba(255,255,255,0.5); }
+    }
+    
     /* Animaciones */
     @keyframes scrollText {
       0% { transform: translateX(100%); }
@@ -218,6 +254,7 @@
     <div id="transition-overlay"></div>
     <div id="msg">Conéctate a la red WiFi <strong>LumiK</strong></div>
     <div id="connection-status">Conectando...</div>
+    <div id="chat-layer"></div>
     <div id="controls-container" style="position:absolute; top:0; right:0; width:200px; height:100px; z-index:30;">
       <div id="fullscreen-btn">⛶ Pantalla Completa</div>
       <div id="keep-awake-btn">⏰ Mantener Activa</div>
@@ -251,6 +288,88 @@
     let musicVisualizerCtx = null;
     let musicVisualizerAnimationId = null;
     let receivedAudioData = null;
+    
+    // Chat Variables
+    const chatLayer = document.getElementById('chat-layer');
+    let chatBubbles = [];
+    let chatMessages = [];
+    const MAX_CHAT_BUBBLES = 15;
+    
+    // Función para crear burbuja de chat tipo Bejeweled
+    function createChatBubble(message, username) {
+      // Remove oldest bubble if too many
+      if (chatBubbles.length >= MAX_CHAT_BUBBLES) {
+        const oldestBubble = chatBubbles.shift();
+        if (oldestBubble && oldestBubble.element) {
+          oldestBubble.element.remove();
+        }
+      }
+      
+      // Create bubble element
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble';
+      
+      // Random size (small, medium, large, xlarge)
+      const sizes = ['small', 'medium', 'large', 'xlarge'];
+      const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
+      bubble.classList.add(randomSize);
+      
+      // Random neon color (Bejeweled style)
+      const colors = [
+        'linear-gradient(135deg, #ff0000, #ff6600)', // Red-Orange
+        'linear-gradient(135deg, #ff6600, #ffcc00)', // Orange-Yellow
+        'linear-gradient(135deg, #00ff00, #00ff88)', // Green
+        'linear-gradient(135deg, #00ffff, #0088ff)', // Cyan-Blue
+        'linear-gradient(135deg, #0088ff, #8800ff)', // Blue-Purple
+        'linear-gradient(135deg, #ff00ff, #ff0088)', // Magenta-Pink
+        'linear-gradient(135deg, #ffffff, #aaaaaa)', // White-Gray
+      ];
+      bubble.style.background = colors[Math.floor(Math.random() * colors.length)];
+      
+      // Set text (short message or emoji)
+      const displayText = message.length > 10 ? message.substring(0, 10) + '...' : message;
+      bubble.textContent = displayText;
+      bubble.title = `${username}: ${message}`;
+      
+      // Random position
+      const maxX = window.innerWidth - 100;
+      const maxY = window.innerHeight - 100;
+      bubble.style.left = Math.random() * maxX + 'px';
+      bubble.style.top = Math.random() * maxY + 'px';
+      
+      // Random animation delay
+      bubble.style.animationDelay = Math.random() * 2 + 's';
+      
+      // Add to layer
+      chatLayer.appendChild(bubble);
+      
+      // Track bubble
+      const bubbleObj = { element: bubble, message, username, createdAt: Date.now() };
+      chatBubbles.push(bubbleObj);
+      
+      // Remove after 30 seconds
+      setTimeout(() => {
+        if (bubble.parentNode) {
+          bubble.style.transition = 'opacity 1s, transform 1s';
+          bubble.style.opacity = '0';
+          bubble.style.transform = 'scale(0)';
+          setTimeout(() => {
+            if (bubble.parentNode) {
+              bubble.remove();
+              chatBubbles = chatBubbles.filter(b => b.element !== bubble);
+            }
+          }, 1000);
+        }
+      }, 30000);
+      
+      return bubbleObj;
+    }
+    
+    // Función para agregar mensaje de chat
+    function addChatMessage(username, message) {
+      chatMessages.push({ username, message, timestamp: Date.now() });
+      createChatBubble(message, username);
+    }
     
     // Función para mantener pantalla activa
     async function keepScreenAwake() {
@@ -415,6 +534,12 @@
             receivedAudioData = new Uint8Array(audioData);
             if (!musicVisualizerAnimationId) {
               startMusicVisualizer();
+            }
+          }
+          else if(msg.startsWith('CHAT:')) {
+            const data = msg.substring(5).split('|');
+            if(data.length === 2) {
+              addChatMessage(data[0], data[1]);
             }
           }
         };
