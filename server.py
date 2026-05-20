@@ -44,6 +44,7 @@ async def handle_websocket(request):
     return ws
 
 async def handle_upload(request):
+    print(f"Upload request received. Method: {request.method}")
     if request.method == 'POST':
         try:
             reader = await request.multipart()
@@ -78,12 +79,13 @@ async def handle_upload(request):
             print(f"Error en upload: {e}")
             return web.Response(status=500, text=f"Error uploading file: {e}")
     
+    print(f"Method not allowed: {request.method}")
     return web.Response(status=405, text="Method not allowed")
 
 async def handle_request(request):
     path = request.path
     
-    # Handle upload endpoint
+    # Handle upload endpoint - must be before file serving
     if path == "/upload":
         return await handle_upload(request)
     
