@@ -599,7 +599,8 @@
     // Conectar WebSocket
     function connectWebSocket() {
       try {
-        ws = new WebSocket('ws://' + location.host + '/ws');
+        const wsProtocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+        ws = new WebSocket(wsProtocol + location.host + '/ws');
         
         ws.onopen = () => {
           statusDiv.textContent = "Conectado al servidor";
