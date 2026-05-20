@@ -45,32 +45,38 @@ async def handle_websocket(request):
 
 async def handle_upload(request):
     if request.method == 'POST':
-        reader = await request.multipart()
-        
-        async for field in reader:
-            if field.name == 'audio':
-                filename = field.filename
-                if not filename:
-                    return web.Response(status=400, text="No filename provided")
-                
-                # Generate unique filename
-                import uuid
-                unique_filename = f"{uuid.uuid4()}_{filename}"
-                file_path = UPLOADS_DIR / unique_filename
-                
-                # Save file
-                with open(file_path, 'wb') as f:
-                    while True:
-                        chunk = await field.read_chunk()
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                
-                # Return the URL to access the file
-                file_url = f"/uploads/{unique_filename}"
-                return web.json_response({'url': file_url})
-        
-        return web.Response(status=400, text="No audio file provided")
+        try:
+            reader = await request.multipart()
+            
+            async for field in reader:
+                if field.name == 'audio':
+                    filename = field.filename
+                    if not filename:
+                        return web.Response(status=400, text="No filename provided")
+                    
+                    # Generate unique filename
+                    import uuid
+                    unique_filename = f"{uuid.uuid4()}_{filename}"
+                    file_path = UPLOADS_DIR / unique_filename
+                    
+                    # Save file
+                    with open(file_path, 'wb') as f:
+                        while True:
+                            chunk = await field.read_chunk()
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                    
+                    print(f"Archivo subido: {unique_filename}")
+                    
+                    # Return the URL to access the file
+                    file_url = f"/uploads/{unique_filename}"
+                    return web.json_response({'url': file_url})
+            
+            return web.Response(status=400, text="No audio file provided")
+        except Exception as e:
+            print(f"Error en upload: {e}")
+            return web.Response(status=500, text=f"Error uploading file: {e}")
     
     return web.Response(status=405, text="Method not allowed")
 
