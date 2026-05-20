@@ -1,10 +1,9 @@
 import asyncio
-import http.server
-import socketserver
 import websockets
 import json
 import os
 from pathlib import Path
+from aiohttp import web, WSMsgType
 
 # Configuration - OnRender compatible
 PORT = int(os.environ.get("PORT", 3001))
@@ -14,70 +13,105 @@ HOST = "0.0.0.0"  # Listen on all interfaces for OnRender
 # WebSocket connections
 connected_clients = set()
 
-class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DATA_DIR, **kwargs)
-
-    def end_headers(self):
-        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-        self.send_header('Pragma', 'no-cache')
-        self.send_header('Expires', '0')
-        super().end_headers()
-
-    def translate_path(self, path):
-        # Serve control.html as default for root
-        if path == "/":
-            return str(DATA_DIR / "control.html")
-        elif path == "/assistant":
-            return str(DATA_DIR / "assistant.html")
-        elif path == "/chat":
-            return str(DATA_DIR / "chat.html")
-        elif path == "/favicon.ico":
-            return str(DATA_DIR / "favicon.ico")
-        else:
-            return super().translate_path(path)
-
-async def websocket_handler(websocket, path):
-    # Add client to connected clients
-    connected_clients.add(websocket)
-    print(f"Cliente conectado: {websocket.remote_address}")
-
+async def handle_websocket(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+    
+    connected_clients.add(ws)
+    print(f"Cliente conectado: {request.remote}")
+    
     try:
-        async for message in websocket:
-            # Echo message to all connected clients
-            if connected_clients:
-                await asyncio.gather(
-                    *[client.send(message) for client in connected_clients if client != websocket]
-                )
-    except websockets.exceptions.ConnectionClosed:
+        async for msg in ws:
+            if msg.type == WSMsgType.TEXT:
+                # Echo message to all connected clients
+                if connected_clients:
+                    await asyncio.gather(
+                        *[client.send_str(msg.data) for client in connected_clients if client != ws]
+                    )
+            elif msg.type == WSMsgType.ERROR:
+                print(f"WebSocket error: {ws.exception()}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        if ws in connected_clients:
+            connected_clients.remove(ws)
+        print(f"Cliente desconectado: {request.remote}")
+    
+    return ws
+
+async def handle_request(request):
+    path = request.path
+    
+    # Determine which file to serve
+    if path == "/":
+        file_path = DATA_DIR / "control.html"
+    elif path == "/assistant":
+        file_path = DATA_DIR / "assistant.html"
+    elif path == "/chat":
+        file_path = DATA_DIR / "chat.html"
+    elif path == "/favicon.ico":
+        file_path = DATA_DIR / "favicon.ico"
+    else:
+        file_path = DATA_DIR / path.lstrip("/")
+    
+    # Check if file exists
+    if not file_path.exists() or not file_path.is_file():
+        return web.Response(status=404, text="File not found")
+    
+    # Read and serve file
+    try:
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        
+        # Set content type based on file extension
+        content_type = 'text/html'
+        if file_path.suffix == '.css':
+            content_type = 'text/css'
+        elif file_path.suffix == '.js':
+            content_type = 'application/javascript'
+        elif file_path.suffix == '.ico':
+            content_type = 'image/x-icon'
+        
+        response = web.Response(body=content, content_type=content_type)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+    except Exception as e:
+        return web.Response(status=500, text=f"Error serving file: {e}")
+
+async def start_server():
+    app = web.Application()
+    
+    # WebSocket route
+    app.add_routes([web.get('/ws', handle_websocket)])
+    
+    # HTTP routes (catch-all for static files)
+    app.add_routes([web.get('/', handle_request)])
+    app.add_routes([web.get('/{path:.*}', handle_request)])
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    site = web.TCPSite(runner, HOST, PORT)
+    await site.start()
+    
+    print(f"Servidor iniciado en http://{HOST}:{PORT}")
+    print("Sirviendo archivos desde el directorio 'data'")
+    print(f" - Página principal (Control): http://{HOST}:{PORT}/")
+    print(f" - Página de asistente: http://{HOST}:{PORT}/assistant")
+    print(f" - Página de chat: http://{HOST}:{PORT}/chat")
+    print(f" - WebSocket: ws://{HOST}:{PORT}/ws")
+    
+    # Keep server running
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except asyncio.CancelledError:
         pass
     finally:
-        # Remove client from connected clients
-        if websocket in connected_clients:
-            connected_clients.remove(websocket)
-        print(f"Cliente desconectado: {websocket.remote_address}")
-
-async def start_websocket_server():
-    async with websockets.serve(websocket_handler, HOST, PORT, subprotocols=None):
-        print(f"Servidor WebSocket iniciado en ws://{HOST}:{PORT}/ws")
-        await asyncio.Future()  # Run forever
-
-def start_http_server():
-    with socketserver.TCPServer((HOST, PORT), CustomHTTPRequestHandler) as httpd:
-        print(f"Servidor HTTP iniciado en http://{HOST}:{PORT}")
-        print("Sirviendo archivos desde el directorio 'data'")
-        print(f" - Página principal (Control): http://{HOST}:{PORT}/")
-        print(f" - Página de asistente: http://{HOST}:{PORT}/assistant")
-        httpd.serve_forever()
+        await runner.cleanup()
 
 if __name__ == "__main__":
-    # Start both servers
-    import threading
-
-    # Start WebSocket server in a separate thread
-    ws_thread = threading.Thread(target=lambda: asyncio.run(start_websocket_server()))
-    ws_thread.daemon = True
-    ws_thread.start()
-
-    # Start HTTP server in the main thread
-    start_http_server()
+    asyncio.run(start_server())
