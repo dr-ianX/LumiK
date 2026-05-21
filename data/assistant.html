@@ -54,18 +54,19 @@
       transform:scale(1.5) !important;
       z-index:100;
     }
-    .chat-bubble.small { width:40px; height:40px; font-size:10px; }
-    .chat-bubble.medium { width:60px; height:60px; font-size:12px; }
-    .chat-bubble.large { width:80px; height:80px; font-size:14px; }
-    .chat-bubble.xlarge { width:100px; height:100px; font-size:16px; }
+    .chat-bubble.small { width:40px; height:40px; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-bubble.medium { width:60px; height:60px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-bubble.large { width:80px; height:80px; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-bubble.xlarge { width:100px; height:100px; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-bubble:hover { white-space:normal; overflow:visible; }
     
     #chat-toggle-btn {
       position:absolute;
       bottom:15px;
       left:15px;
-      background:rgba(0,0,0,0.7);
+      background:rgba(128,0,128,0.7);
       color:#fff;
-      border:1px solid #fff;
+      border:1px solid #800080;
       border-radius:5px;
       padding:8px 12px;
       z-index:60;
@@ -74,8 +75,8 @@
       transition:opacity 0.3s;
       font-size:12px;
     }
-    #chat-toggle-btn:hover { opacity:1; background:rgba(0,255,0,0.7); }
-    #chat-toggle-btn.active { background:rgba(0,255,0,0.7); }
+    #chat-toggle-btn:hover { opacity:1; background:rgba(128,0,128,0.9); }
+    #chat-toggle-btn.active { background:rgba(128,0,128,0.9); }
     
     #chat-input-container {
       position:absolute;
@@ -312,7 +313,7 @@
     <div id="connection-status">Conectando...</div>
     <div id="chat-layer"></div>
     <div id="chat-toggle-btn">💬 Chat</div>
-    <div id="clear-screen-btn" style="position:absolute; bottom:15px; left:80px; background:rgba(255,0,0,0.5); color:#fff; border:1px solid #f00; border-radius:5px; padding:8px 12px; z-index:60; cursor:pointer; opacity:1; transition:opacity 0.3s; font-size:12px;">🗑️ Limpiar</div>
+    <div id="clear-screen-btn" style="position:absolute; bottom:15px; left:80px; background:transparent; color:#fff; border:1px solid #fff; border-radius:5px; padding:8px 12px; z-index:60; cursor:pointer; opacity:1; transition:opacity 0.3s; font-size:12px;">🗑️ Limpiar</div>
     <div id="chat-input-container">
       <input type="text" id="chat-input" placeholder="Escribe un mensaje..." maxlength="200" onkeypress="if(event.key === 'Enter') sendChatMessage()">
     </div>
@@ -763,6 +764,16 @@
             if(data.length === 2) {
               addChatMessage(data[0], data[1]);
             }
+          }
+          else if(msg === 'CHAT_RESET:ALL') {
+            // Clear all chat bubbles and messages
+            chatBubbles.forEach(bubble => {
+              if (bubble.element) {
+                bubble.element.remove();
+              }
+            });
+            chatBubbles = [];
+            chatMessages = [];
           }
         };
         

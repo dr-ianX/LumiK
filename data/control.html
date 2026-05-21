@@ -340,9 +340,10 @@
     <div class="section" style="grid-column:span 2;">
       <div class="section-title">Historial de Comandos</div>
       
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
         <button onclick="clearHistory()" style="background:linear-gradient(135deg, #666, #444);">🗑️ LIMPIAR HISTORIAL</button>
         <button onclick="exportHistory()" style="background:linear-gradient(135deg, #4488ff, #2266dd);">📤 EXPORTAR HISTORIAL</button>
+        <button onclick="resetChat()" style="background:linear-gradient(135deg, #800080, #600060);">💬 RESET CHAT</button>
       </div>
       
       <div id="commandHistory" style="max-height:200px; overflow-y:auto; background:rgba(20,20,30,0.8); border:1px solid rgba(100,200,255,0.2); border-radius:8px; padding:10px;">
@@ -1288,6 +1289,12 @@
         renderHistory();
         statusDiv.textContent = "Historial limpiado";
         setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
+      }
+    }
+    
+    function resetChat() {
+      if(confirm('¿Resetear el chat en todos los dispositivos?')) {
+        ws.send('CHAT_RESET:ALL');
       }
     }
     
