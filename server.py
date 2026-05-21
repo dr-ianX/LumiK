@@ -16,6 +16,12 @@ UPLOADS_DIR.mkdir(exist_ok=True)
 
 # WebSocket connections
 connected_clients = set()
+current_state = {
+    'effect': None,
+    'color': None,
+    'text': None,
+    'event_info': None
+}
 
 async def handle_websocket(request):
     ws = web.WebSocketResponse()
@@ -24,9 +30,30 @@ async def handle_websocket(request):
     connected_clients.add(ws)
     print(f"Cliente conectado: {request.remote}")
     
+    # Send current state to new client
+    if current_state['effect']:
+        await ws.send_str(current_state['effect'])
+    if current_state['color']:
+        await ws.send_str(current_state['color'])
+    if current_state['text']:
+        await ws.send_str(current_state['text'])
+    if current_state['event_info']:
+        await ws.send_str(current_state['event_info'])
+    
     try:
         async for msg in ws:
             if msg.type == WSMsgType.TEXT:
+                # Update state based on message
+                data = msg.data
+                if data.startswith('EFFECT:'):
+                    current_state['effect'] = data
+                elif data.startswith('COLOR:'):
+                    current_state['color'] = data
+                elif data.startswith('TEXT:'):
+                    current_state['text'] = data
+                elif data.startswith('EVENT_INFO:'):
+                    current_state['event_info'] = data
+                
                 # Echo message to all connected clients
                 if connected_clients:
                     await asyncio.gather(
