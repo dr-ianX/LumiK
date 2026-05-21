@@ -378,6 +378,7 @@
     let assistantAudioContext = null;
     let assistantAnalyser = null;
     let assistantAudioSource = null;
+    let autoplayUnlockBound = false;
     
     // Chat Variables
     const chatLayer = document.getElementById('chat-layer');
@@ -569,6 +570,28 @@
       }
     }
     
+    function setupAutoplayUnlock() {
+      if (autoplayUnlockBound) return;
+      autoplayUnlockBound = true;
+
+      const unlockAudio = async () => {
+        try {
+          if (assistantAudioContext && assistantAudioContext.state === 'suspended') {
+            await assistantAudioContext.resume();
+          }
+          if (assistantAudioElement && assistantAudioElement.paused) {
+            await assistantAudioElement.play();
+          }
+        } catch (e) {
+          // silencioso para no romper experiencia visual
+        }
+      };
+
+      document.addEventListener('click', unlockAudio, { passive: true });
+      document.addEventListener('touchstart', unlockAudio, { passive: true });
+      document.addEventListener('keydown', unlockAudio, { passive: true });
+    }
+
     // Función para reproducir audio desde URL
     function playAudioFromUrl(url) {
       // Clean up previous audio
@@ -582,23 +605,10 @@
       assistantAudioElement.src = url;
       assistantAudioElement.volume = 1; // Full volume in assistant.html
       assistantAudioElement.loop = true; // Loop the music infinitely
-      
-      // Play audio with user interaction handling
-      assistantAudioElement.play().catch(error => {
-        console.error('Error playing audio:', error);
-        // If autoplay is blocked, show a message to user
-        if (error.name === 'NotAllowedError') {
-          alert('Haz clic en la página para habilitar el audio');
-          // Add click listener to document to enable audio
-          document.addEventListener('click', function enableAudio() {
-            assistantAudioElement.play();
-            document.removeEventListener('click', enableAudio);
-          }, { once: true });
-        }
-      });
-      
+      assistantAudioElement.playsInline = true;
+
       // Initialize audio context for visualizer
-      assistantAudioElement.addEventListener('play', () => {
+      assistantAudioElement.addEventListener('play', async () => {
         if (!assistantAudioContext) {
           assistantAudioContext = new (window.AudioContext || window.webkitAudioContext)();
           assistantAnalyser = assistantAudioContext.createAnalyser();
@@ -606,6 +616,10 @@
           assistantAudioSource = assistantAudioContext.createMediaElementSource(assistantAudioElement);
           assistantAudioSource.connect(assistantAnalyser);
           assistantAnalyser.connect(assistantAudioContext.destination);
+        }
+
+        if (assistantAudioContext.state === 'suspended') {
+          try { await assistantAudioContext.resume(); } catch (e) {}
         }
         
         if (!musicVisualizerAnimationId) {
@@ -621,11 +635,21 @@
           receivedAudioData = dataArray;
         }
       });
-      
-      // Auto-play
-      assistantAudioElement.play().catch(e => {
-        console.error('Error playing audio:', e);
-      });
+
+      // Silent retry strategy (no popup)
+      const tryPlay = async (retries = 8) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            await assistantAudioElement.play();
+            return;
+          } catch (e) {
+            await new Promise(r => setTimeout(r, 400));
+          }
+        }
+      };
+
+      setupAutoplayUnlock();
+      tryPlay();
     }
     
     // Función para mantener pantalla activa
@@ -812,6 +836,27 @@
           else if(msg.startsWith('AUDIO_URL:')) {
             const audioUrl = msg.substring(10);
             playAudioFromUrl(audioUrl);
+          }
+          else if(msg === 'AUDIO_PLAY') {
+            if (assistantAudioElement) {
+              assistantAudioElement.play().catch(() => {});
+            }
+          }
+          else if(msg === 'AUDIO_PAUSE') {
+            if (assistantAudioElement) {
+              assistantAudioElement.pause();
+            }
+          }
+          else if(msg === 'AUDIO_STOP') {
+            if (assistantAudioElement) {
+              assistantAudioElement.pause();
+              assistantAudioElement.currentTime = 0;
+            }
+          }
+          else if(msg === 'AUDIO_SEEK_START') {
+            if (assistantAudioElement) {
+              assistantAudioElement.currentTime = 0;
+            }
           }
           else if(msg.startsWith('CHAT:')) {
             const data = msg.substring(5).split('|');

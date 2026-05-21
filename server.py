@@ -156,12 +156,29 @@ async def handle_upload_favicon(request):
     return web.Response(status=405, text="Method not allowed")
 
 async def handle_list_music(request):
-    """List all music files in the music directory"""
+    """List all music files in the music and uploads directories"""
     try:
+        allowed_suffixes = ['.mp3', '.wav', '.ogg', '.m4a']
         music_files = []
+
+        # Files in /music
         for file in MUSIC_DIR.iterdir():
-            if file.is_file() and file.suffix in ['.mp3', '.wav', '.ogg', '.m4a']:
-                music_files.append(file.name)
+            if file.is_file() and file.suffix.lower() in allowed_suffixes:
+                music_files.append({
+                    'name': file.name,
+                    'url': f"/music/{file.name}",
+                    'source': 'music'
+                })
+
+        # Files in /uploads
+        for file in UPLOADS_DIR.iterdir():
+            if file.is_file() and file.suffix.lower() in allowed_suffixes:
+                music_files.append({
+                    'name': file.name,
+                    'url': f"/uploads/{file.name}",
+                    'source': 'uploads'
+                })
+
         return web.json_response({'files': music_files})
     except Exception as e:
         print(f"Error listing music files: {e}")
@@ -209,14 +226,6 @@ async def handle_request(request):
         # Determine if file is binary (audio, images, etc.)
         binary_extensions = ['.mp3', '.wav', '.ogg', '.m4a', '.png', '.jpg', '.jpeg', '.webp', '.ico']
         if file_path.suffix.lower() in binary_extensions:
-            # Serve binary file using streaming for large files
-            def file_sender():
-                with open(file_path, 'rb') as f:
-                    chunk = f.read(8192)  # Read in 8KB chunks
-                    while chunk:
-                        yield chunk
-                        chunk = f.read(8192)
-            
             # Get content type
             content_type = 'application/octet-stream'
             if file_path.suffix.lower() == '.mp3':
@@ -235,11 +244,11 @@ async def handle_request(request):
                 content_type = 'image/webp'
             elif file_path.suffix.lower() == '.ico':
                 content_type = 'image/x-icon'
-            
-            return web.Response(
-                body=file_sender(),
-                content_type=content_type,
-                headers={'Cache-Control': 'no-cache, no-store, must-revalidate'}
+
+            return web.FileResponse(
+                path=file_path,
+                headers={'Cache-Control': 'no-cache, no-store, must-revalidate'},
+                content_type=content_type
             )
         else:
             # Serve text file
@@ -254,7 +263,7 @@ async def handle_request(request):
             
             if current_state['event_info']:
                 try:
-                    event_info = json.loads(current_state['event_info'].split(':', 1)[1])
+                    event_info = json.loads(current_state['event_info'])
                     if event_info.get('name'):
                         og_title = event_info['name']
                     if event_info.get('description'):
