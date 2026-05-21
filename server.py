@@ -205,8 +205,16 @@ async def handle_request(request):
     
     # Read and serve file
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # Determine if file is binary (audio, images, etc.)
+        binary_extensions = ['.mp3', '.wav', '.ogg', '.m4a', '.png', '.jpg', '.jpeg', '.webp', '.ico']
+        if file_path.suffix.lower() in binary_extensions:
+            # Serve binary file
+            with open(file_path, 'rb') as f:
+                content = f.read()
+        else:
+            # Serve text file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
         
         # Inject Open Graph meta tags for assistant.html
         if path == "/assistant" or path == "/assistant.html":
