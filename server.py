@@ -181,8 +181,35 @@ async def handle_request(request):
     
     # Read and serve file
     try:
-        with open(file_path, 'rb') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
+        
+        # Inject Open Graph meta tags for assistant.html
+        if path == "/assistant":
+            og_title = "LumiK Assistant"
+            og_image = "https://lumik.onrender.com/favicon.ico"
+            og_description = "Experiencia visual interactiva"
+            
+            if current_state['event_info']:
+                try:
+                    event_info = json.loads(current_state['event_info'].split(':', 1)[1])
+                    if event_info.get('name'):
+                        og_title = event_info['name']
+                    if event_info.get('favicon'):
+                        og_image = "https://lumik.onrender.com" + event_info['favicon']
+                except:
+                    pass
+            
+            # Insert Open Graph meta tags after <head>
+            og_tags = f'''
+    <!-- Open Graph / WhatsApp -->
+    <meta property="og:title" content="{og_title}">
+    <meta property="og:image" content="{og_image}">
+    <meta property="og:description" content="{og_description}">
+    <meta property="og:url" content="https://lumik.onrender.com/assistant">
+    <meta property="og:type" content="website">
+'''
+            content = content.replace('<head>', '<head>' + og_tags)
         
         # Set content type based on file extension
         content_type = 'text/html'
@@ -195,7 +222,7 @@ async def handle_request(request):
         elif file_path.suffix in ['.mp3', '.wav', '.ogg', '.m4a']:
             content_type = 'audio/mpeg'
         
-        response = web.Response(body=content, content_type=content_type)
+        response = web.Response(text=content, content_type=content_type)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
