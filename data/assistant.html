@@ -583,6 +583,20 @@
       assistantAudioElement.volume = 1; // Full volume in assistant.html
       assistantAudioElement.loop = true; // Loop the music infinitely
       
+      // Play audio with user interaction handling
+      assistantAudioElement.play().catch(error => {
+        console.error('Error playing audio:', error);
+        // If autoplay is blocked, show a message to user
+        if (error.name === 'NotAllowedError') {
+          alert('Haz clic en la página para habilitar el audio');
+          // Add click listener to document to enable audio
+          document.addEventListener('click', function enableAudio() {
+            assistantAudioElement.play();
+            document.removeEventListener('click', enableAudio);
+          }, { once: true });
+        }
+      });
+      
       // Initialize audio context for visualizer
       assistantAudioElement.addEventListener('play', () => {
         if (!assistantAudioContext) {

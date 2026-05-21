@@ -218,6 +218,8 @@ async def handle_request(request):
                     event_info = json.loads(current_state['event_info'].split(':', 1)[1])
                     if event_info.get('name'):
                         og_title = event_info['name']
+                    if event_info.get('description'):
+                        og_description = event_info['description']
                     if event_info.get('favicon'):
                         favicon_path = event_info['favicon']
                         # Ensure the URL is properly formatted
@@ -231,6 +233,7 @@ async def handle_request(request):
                     pass
             
             print(f"OG Title: {og_title}")
+            print(f"OG Description: {og_description}")
             print(f"OG Image: {og_image}")
             
             # Insert Open Graph meta tags after <head>

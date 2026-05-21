@@ -272,12 +272,17 @@
       <div class="section-title">Personalización del Evento</div>
       
       <div style="margin-bottom:15px;">
-        <label>Nombre del Evento:</label>
+        <label>Nombre del Evento (og:title):</label>
         <input id="eventName" type="text" placeholder="Ej: NACHTZCENE" maxlength="50" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
       </div>
       
       <div style="margin-bottom:15px;">
-        <label>Favicon (PNG, JPG, JPEG, WEBP):</label>
+        <label>Descripción (og:description):</label>
+        <input id="eventDescription" type="text" placeholder="Ej: Experiencia visual interactiva" maxlength="200" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
+      </div>
+      
+      <div style="margin-bottom:15px;">
+        <label>Favicon (og:image) - PNG, JPG, JPEG, WEBP:</label>
         <input id="faviconUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
       </div>
       
@@ -1324,17 +1329,12 @@
     }
     
     async function updateEventInfo() {
-      const eventName = document.getElementById('eventName').value.trim();
+      const eventName = document.getElementById('eventName').value;
+      const eventDescription = document.getElementById('eventDescription').value;
       const faviconUpload = document.getElementById('faviconUpload');
+      let faviconUrl = '';
       
-      if (!eventName && !faviconUpload.files.length) {
-        alert('Por favor ingresa un nombre del evento o sube un favicon');
-        return;
-      }
-      
-      let faviconUrl = null;
-      
-      // Upload favicon if provided
+      // Upload favicon if selected
       if (faviconUpload.files.length > 0) {
         const formData = new FormData();
         formData.append('favicon', faviconUpload.files[0]);
@@ -1361,8 +1361,9 @@
       // Send event info via WebSocket
       if (ws && ws.readyState === WebSocket.OPEN) {
         const eventInfo = {
-          name: eventName || null,
-          favicon: faviconUrl,
+          name: eventName || '',
+          description: eventDescription || 'Experiencia visual interactiva',
+          favicon: faviconUrl || '',
           timestamp: Date.now()
         };
         ws.send('EVENT_INFO:' + JSON.stringify(eventInfo));
