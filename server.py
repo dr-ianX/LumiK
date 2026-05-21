@@ -20,7 +20,8 @@ current_state = {
     'effect': None,
     'color': None,
     'text': None,
-    'event_info': None
+    'event_info': None,
+    'chat_messages': []
 }
 
 async def handle_websocket(request):
@@ -39,6 +40,9 @@ async def handle_websocket(request):
         await ws.send_str(current_state['text'])
     if current_state['event_info']:
         await ws.send_str(current_state['event_info'])
+    # Send chat messages to new client
+    for msg in current_state['chat_messages']:
+        await ws.send_str(msg)
     
     try:
         async for msg in ws:
@@ -53,6 +57,15 @@ async def handle_websocket(request):
                     current_state['text'] = data
                 elif data.startswith('EVENT_INFO:'):
                     current_state['event_info'] = data
+                elif data.startswith('CHAT:'):
+                    # Add chat message to state
+                    current_state['chat_messages'].append(data)
+                    # Limit to last 50 messages to avoid memory issues
+                    if len(current_state['chat_messages']) > 50:
+                        current_state['chat_messages'] = current_state['chat_messages'][-50:]
+                elif data == 'CHAT_RESET:ALL':
+                    # Clear chat messages from state
+                    current_state['chat_messages'] = []
                 
                 # Echo message to all connected clients
                 if connected_clients:
@@ -215,9 +228,22 @@ async def handle_request(request):
     <!-- Open Graph / WhatsApp -->
     <meta property="og:title" content="{og_title}">
     <meta property="og:image" content="{og_image}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:description" content="{og_description}">
     <meta property="og:url" content="https://lumik.onrender.com/assistant">
     <meta property="og:type" content="website">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{og_title}">
+    <meta name="twitter:image" content="{og_image}">
+    <meta name="twitter:description" content="{og_description}">
+    
+    <!-- LinkedIn -->
+    <meta property="linkedin:title" content="{og_title}">
+    <meta property="linkedin:image" content="{og_image}">
+    <meta property="linkedin:description" content="{og_description}">
 '''
             content = content.replace('<head>', '<head>' + og_tags)
         
