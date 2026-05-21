@@ -41,7 +41,7 @@ async def handle_websocket(request):
     if current_state['text']:
         await ws.send_str(current_state['text'])
     if current_state['event_info']:
-        await ws.send_str(current_state['event_info'])
+        await ws.send_str('EVENT_INFO:' + current_state['event_info'])
     # Send chat messages to new client
     for msg in current_state['chat_messages']:
         await ws.send_str(msg)
