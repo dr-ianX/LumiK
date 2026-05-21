@@ -286,12 +286,13 @@
         <input id="faviconUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
       </div>
       
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
         <button onclick="updateEventInfo()" style="background:linear-gradient(135deg, #ff00ff, #aa00aa);">🎨 ACTUALIZAR EVENTO</button>
+        <button onclick="copyAssistantLink()" style="background:linear-gradient(135deg, #00ccff, #0077cc);">🔗 COPIAR LINK PREVIEW</button>
         <button onclick="resetEventInfo()" style="background:linear-gradient(135deg, #666, #444);">🔄 RESET EVENTO</button>
       </div>
       
-      <div id="eventInfoStatus" style="text-align:center; margin-top:10px; color:#aaa; font-size:0.9rem;">El nombre del evento se reseteará automáticamente en 24hrs</div>
+      <div id="eventInfoStatus" style="text-align:center; margin-top:10px; color:#aaa; font-size:0.9rem;">Actualiza evento y luego comparte el link para generar preview con tus textos</div>
     </div>
     
     <!-- Modo Automático -->
@@ -1328,11 +1329,18 @@
       }
     }
     
+    let currentEventInfo = {
+      name: '',
+      description: '',
+      favicon: '',
+      timestamp: null
+    };
+
     async function updateEventInfo() {
-      const eventName = document.getElementById('eventName').value;
-      const eventDescription = document.getElementById('eventDescription').value;
+      const eventName = document.getElementById('eventName').value.trim();
+      const eventDescription = document.getElementById('eventDescription').value.trim();
       const faviconUpload = document.getElementById('faviconUpload');
-      let faviconUrl = '';
+      let faviconUrl = currentEventInfo.favicon || '';
       
       // Upload favicon if selected
       if (faviconUpload.files.length > 0) {
@@ -1361,15 +1369,35 @@
       // Send event info via WebSocket
       if (ws && ws.readyState === WebSocket.OPEN) {
         const eventInfo = {
-          name: eventName || '',
+          name: eventName || 'LumiK Experience',
           description: eventDescription || 'Experiencia visual interactiva',
           favicon: faviconUrl || '',
           timestamp: Date.now()
         };
         ws.send('EVENT_INFO:' + JSON.stringify(eventInfo));
-        document.getElementById('eventInfoStatus').textContent = 'Evento actualizado correctamente';
+        currentEventInfo = eventInfo;
+
+        document.getElementById('eventInfoStatus').textContent = 'Evento actualizado correctamente. Comparte el link para que el preview tome estos datos.';
         document.getElementById('eventInfoStatus').style.color = '#0f0';
+      } else {
+        document.getElementById('eventInfoStatus').textContent = 'No hay conexión WebSocket para actualizar metadata';
+        document.getElementById('eventInfoStatus').style.color = '#ff5555';
       }
+    }
+
+    function copyAssistantLink() {
+      const baseUrl = window.location.origin + '/assistant';
+      const slug = (document.getElementById('eventName').value || 'cliente').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
+      const cacheBust = slug ? `?v=${encodeURIComponent(slug)}` : `?v=${Date.now()}`;
+      const finalUrl = baseUrl + cacheBust;
+
+      navigator.clipboard.writeText(finalUrl).then(() => {
+        document.getElementById('eventInfoStatus').textContent = `Link copiado: ${finalUrl}`;
+        document.getElementById('eventInfoStatus').style.color = '#0ff';
+      }).catch(() => {
+        document.getElementById('eventInfoStatus').textContent = `Copia manual este link: ${finalUrl}`;
+        document.getElementById('eventInfoStatus').style.color = '#ffaa00';
+      });
     }
     
     function resetEventInfo() {
