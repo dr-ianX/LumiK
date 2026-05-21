@@ -196,9 +196,19 @@ async def handle_request(request):
                     if event_info.get('name'):
                         og_title = event_info['name']
                     if event_info.get('favicon'):
-                        og_image = "https://lumik.onrender.com" + event_info['favicon']
-                except:
+                        favicon_path = event_info['favicon']
+                        # Ensure the URL is properly formatted
+                        if favicon_path.startswith('/'):
+                            og_image = "https://lumik.onrender.com" + favicon_path
+                        else:
+                            og_image = "https://lumik.onrender.com/" + favicon_path
+                        print(f"OG Image URL: {og_image}")
+                except Exception as e:
+                    print(f"Error parsing event_info for OG tags: {e}")
                     pass
+            
+            print(f"OG Title: {og_title}")
+            print(f"OG Image: {og_image}")
             
             # Insert Open Graph meta tags after <head>
             og_tags = f'''
