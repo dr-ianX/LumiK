@@ -267,6 +267,28 @@
       </div>
     </div>
     
+    <!-- Personalización del Evento -->
+    <div class="section" style="grid-column:span 2;">
+      <div class="section-title">Personalización del Evento</div>
+      
+      <div style="margin-bottom:15px;">
+        <label>Nombre del Evento:</label>
+        <input id="eventName" type="text" placeholder="Ej: NACHTZCENE" maxlength="50" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
+      </div>
+      
+      <div style="margin-bottom:15px;">
+        <label>Favicon (PNG):</label>
+        <input id="faviconUpload" type="file" accept="image/png" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button onclick="updateEventInfo()" style="background:linear-gradient(135deg, #ff00ff, #aa00aa);">🎨 ACTUALIZAR EVENTO</button>
+        <button onclick="resetEventInfo()" style="background:linear-gradient(135deg, #666, #444);">🔄 RESET EVENTO</button>
+      </div>
+      
+      <div id="eventInfoStatus" style="text-align:center; margin-top:10px; color:#aaa; font-size:0.9rem;">El nombre del evento se reseteará automáticamente en 24hrs</div>
+    </div>
+    
     <!-- Modo Automático -->
     <div class="section" style="grid-column:span 2;">
       <div class="section-title">Modo Automático / Secuenciador</div>
@@ -1295,6 +1317,66 @@
     function resetChat() {
       if(confirm('¿Resetear el chat en todos los dispositivos?')) {
         ws.send('CHAT_RESET:ALL');
+      }
+    }
+    
+    async function updateEventInfo() {
+      const eventName = document.getElementById('eventName').value.trim();
+      const faviconUpload = document.getElementById('faviconUpload');
+      
+      if (!eventName && !faviconUpload.files.length) {
+        alert('Por favor ingresa un nombre del evento o sube un favicon');
+        return;
+      }
+      
+      let faviconUrl = null;
+      
+      // Upload favicon if provided
+      if (faviconUpload.files.length > 0) {
+        const formData = new FormData();
+        formData.append('favicon', faviconUpload.files[0]);
+        
+        try {
+          const response = await fetch('/upload-favicon', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error('Error uploading favicon');
+          }
+          
+          const data = await response.json();
+          faviconUrl = data.url;
+        } catch (error) {
+          console.error('Error uploading favicon:', error);
+          alert('Error al subir el favicon');
+          return;
+        }
+      }
+      
+      // Send event info via WebSocket
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const eventInfo = {
+          name: eventName || null,
+          favicon: faviconUrl,
+          timestamp: Date.now()
+        };
+        ws.send('EVENT_INFO:' + JSON.stringify(eventInfo));
+        document.getElementById('eventInfoStatus').textContent = 'Evento actualizado correctamente';
+        document.getElementById('eventInfoStatus').style.color = '#0f0';
+      }
+    }
+    
+    function resetEventInfo() {
+      if(confirm('¿Resetear la información del evento?')) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send('EVENT_INFO:RESET');
+          document.getElementById('eventName').value = '';
+          document.getElementById('faviconUpload').value = '';
+          document.getElementById('eventInfoStatus').textContent = 'Evento reseteado';
+          document.getElementById('eventInfoStatus').style.color = '#aaa';
+        }
       }
     }
     

@@ -82,12 +82,55 @@ async def handle_upload(request):
     print(f"Method not allowed: {request.method}")
     return web.Response(status=405, text="Method not allowed")
 
+async def handle_upload_favicon(request):
+    print(f"Favicon upload request received. Method: {request.method}")
+    if request.method == 'POST':
+        try:
+            reader = await request.multipart()
+            
+            async for field in reader:
+                if field.name == 'favicon':
+                    filename = field.filename
+                    if not filename:
+                        return web.Response(status=400, text="No filename provided")
+                    
+                    # Generate unique filename
+                    import uuid
+                    unique_filename = f"{uuid.uuid4()}_{filename}"
+                    file_path = UPLOADS_DIR / unique_filename
+                    
+                    # Save file
+                    with open(file_path, 'wb') as f:
+                        while True:
+                            chunk = await field.read_chunk()
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                    
+                    print(f"Favicon subido: {unique_filename}")
+                    
+                    # Return the URL to access the file
+                    file_url = f"/uploads/{unique_filename}"
+                    return web.json_response({'url': file_url})
+            
+            return web.Response(status=400, text="No favicon file provided")
+        except Exception as e:
+            print(f"Error en favicon upload: {e}")
+            return web.Response(status=500, text=f"Error uploading favicon: {e}")
+    
+    print(f"Method not allowed: {request.method}")
+    return web.Response(status=405, text="Method not allowed")
+
 async def handle_request(request):
     path = request.path
     
     # Handle upload endpoint - must be before file serving
     if path == "/upload":
         return await handle_upload(request)
+    
+    # Handle favicon upload endpoint
+    if path == "/upload-favicon":
+        return await handle_upload_favicon(request)
     
     # Determine which file to serve
     if path == "/":

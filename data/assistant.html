@@ -816,6 +816,36 @@
             chatBubbles = [];
             chatMessages = [];
           }
+          else if(msg.startsWith('EVENT_INFO:')) {
+            const data = msg.substring(10);
+            if(data === 'RESET') {
+              // Reset event info
+              document.title = 'LumiK Assistant';
+              const favicon = document.querySelector('link[rel="icon"]');
+              if(favicon) favicon.href = '/favicon.ico';
+            } else {
+              try {
+                const eventInfo = JSON.parse(data);
+                if(eventInfo.name) {
+                  document.title = eventInfo.name + ' - LumiK';
+                }
+                if(eventInfo.favicon) {
+                  const favicon = document.querySelector('link[rel="icon"]');
+                  if(favicon) favicon.href = eventInfo.favicon;
+                }
+                if(eventInfo.timestamp) {
+                  // Set timeout to reset after 24 hours
+                  setTimeout(() => {
+                    document.title = 'LumiK Assistant';
+                    const favicon = document.querySelector('link[rel="icon"]');
+                    if(favicon) favicon.href = '/favicon.ico';
+                  }, 24 * 60 * 60 * 1000); // 24 hours
+                }
+              } catch(e) {
+                console.error('Error parsing EVENT_INFO:', e);
+              }
+            }
+          }
         };
         
         ws.onclose = () => {
