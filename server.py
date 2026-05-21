@@ -9,10 +9,12 @@ from aiohttp import web, WSMsgType
 PORT = int(os.environ.get("PORT", 3001))
 DATA_DIR = Path("data")
 UPLOADS_DIR = DATA_DIR / "uploads"
+MUSIC_DIR = Path("music")
 HOST = "0.0.0.0"  # Listen on all interfaces for OnRender
 
-# Create uploads directory if it doesn't exist
+# Create directories if they don't exist
 UPLOADS_DIR.mkdir(exist_ok=True)
+MUSIC_DIR.mkdir(exist_ok=True)
 
 # WebSocket connections
 connected_clients = set()
@@ -127,39 +129,41 @@ async def handle_upload_favicon(request):
     if request.method == 'POST':
         try:
             reader = await request.multipart()
-            
             async for field in reader:
                 if field.name == 'favicon':
                     filename = field.filename
                     if not filename:
                         return web.Response(status=400, text="No filename provided")
-                    
-                    # Generate unique filename
                     import uuid
                     unique_filename = f"{uuid.uuid4()}_{filename}"
                     file_path = UPLOADS_DIR / unique_filename
-                    
-                    # Save file
                     with open(file_path, 'wb') as f:
                         while True:
                             chunk = await field.read_chunk()
                             if not chunk:
                                 break
                             f.write(chunk)
-                    
                     print(f"Favicon subido: {unique_filename}")
-                    
-                    # Return the URL to access the file
                     file_url = f"/uploads/{unique_filename}"
                     return web.json_response({'url': file_url})
-            
             return web.Response(status=400, text="No favicon file provided")
         except Exception as e:
             print(f"Error en favicon upload: {e}")
             return web.Response(status=500, text=f"Error uploading favicon: {e}")
-    
     print(f"Method not allowed: {request.method}")
     return web.Response(status=405, text="Method not allowed")
+
+async def handle_list_music(request):
+    """List all music files in the music directory"""
+    try:
+        music_files = []
+        for file in MUSIC_DIR.iterdir():
+            if file.is_file() and file.suffix in ['.mp3', '.wav', '.ogg', '.m4a']:
+                music_files.append(file.name)
+        return web.json_response({'files': music_files})
+    except Exception as e:
+        print(f"Error listing music files: {e}")
+        return web.Response(status=500, text=f"Error listing music files: {e}")
 
 async def handle_request(request):
     path = request.path
@@ -174,6 +178,10 @@ async def handle_request(request):
         print("Routing to handle_upload_favicon")
         return await handle_upload_favicon(request)
     
+    # Handle list music endpoint
+    if path == "/list-music":
+        return await handle_list_music(request)
+    
     # Determine which file to serve
     if path == "/":
         file_path = DATA_DIR / "control.html"
@@ -185,6 +193,8 @@ async def handle_request(request):
         file_path = DATA_DIR / "favicon.ico"
     elif path.startswith("/uploads/"):
         file_path = UPLOADS_DIR / path.lstrip("/uploads/")
+    elif path.startswith("/music/"):
+        file_path = MUSIC_DIR / path.lstrip("/music/")
     else:
         file_path = DATA_DIR / path.lstrip("/")
     

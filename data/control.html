@@ -333,9 +333,11 @@
       <div class="section-title">🎵 Reproductor de Música</div>
       
       <div class="music-player">
-        <div class="file-input-wrapper">
-          <div class="file-input-btn">📁 Seleccionar Archivo de Música (MP3/M4A)</div>
-          <input type="file" id="musicFile" accept="audio/mp3,audio/m4a,audio/*" onchange="loadMusicFile(event)">
+        <div style="margin-bottom:15px;">
+          <label style="color:#aaa; font-size:0.9rem;">Seleccionar archivo de música:</label>
+          <select id="musicFile" style="width:100%; padding:10px; border-radius:5px; border:1px solid rgba(100,200,255,0.3); background:rgba(20,20,30,0.8); color:#fff; margin-top:5px;">
+            <option value="">-- Cargando archivos... --</option>
+          </select>
         </div>
         
         <div class="now-playing" id="nowPlaying">Ningún archivo seleccionado</div>
@@ -627,6 +629,7 @@
         
         ws.onopen = () => {
           statusDiv.textContent = "Conectado al servidor";
+          loadMusicFiles(); // Load music files when connected
           statusDiv.className = "status";
         };
         
@@ -1401,48 +1404,43 @@
     }
     
     // Music Player Functions
-    function loadMusicFile(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      // Upload file to server
-      const formData = new FormData();
-      formData.append('audio', file);
-      
-      fetch('/upload', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.url) {
+    async function loadMusicFiles() {
+      try {
+        const response = await fetch('/list-music');
+        const data = await response.json();
+        const select = document.getElementById('musicFile');
+        select.innerHTML = '<option value="">-- Seleccionar archivo --</option>';
+        
+        data.files.forEach(file => {
+          const option = document.createElement('option');
+          option.value = file;
+          option.textContent = file;
+          select.appendChild(option);
+        });
+        
+        select.addEventListener('change', function() {
+          const file = this.value;
+          if (!file) return;
+          
           // Clean up previous audio
           if (audioElement) {
             audioElement.pause();
             audioElement = null;
           }
           
-          // Create new audio element with server URL
+          // Create new audio element with local file URL
           audioElement = new Audio();
-          audioElement.src = data.url;
+          audioElement.src = '/music/' + file;
           audioElement.volume = 0; // Muted - audio plays but no sound in control.html
+          audioElement.loop = true; // Loop the music
           
-          document.getElementById('nowPlaying').textContent = '🎵 ' + file.name;
-          statusDiv.textContent = "Archivo cargado: " + file.name;
-          
-          // Send URL to assistant.html via WebSocket
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send('AUDIO_URL:' + data.url);
-          }
-          
-          // Initialize audio context on user interaction
-          audioElement.addEventListener('play', initMusicVisualizer);
-        }
-      })
-      .catch(error => {
-        console.error('Error uploading file:', error);
-        statusDiv.textContent = "Error subiendo archivo";
-      });
+          document.getElementById('nowPlaying').textContent = '🎵 ' + file;
+          statusDiv.textContent = "Archivo cargado: " + file;
+        });
+      } catch (error) {
+        console.error('Error loading music files:', error);
+        document.getElementById('musicFile').innerHTML = '<option value="">-- Error al cargar archivos --</option>';
+      }
     }
     
     function playMusic() {
@@ -1453,6 +1451,15 @@
       
       audioElement.play();
       statusDiv.textContent = "Reproduciendo música";
+      
+      // Send URL to assistant.html via WebSocket
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('AUDIO_URL:' + audioElement.src);
+      }
+      
+      // Initialize audio context on user interaction
+      audioElement.addEventListener('play', initMusicVisualizer);
+      
       setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
     }
     
