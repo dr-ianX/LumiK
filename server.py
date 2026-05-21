@@ -183,6 +183,10 @@ async def start_server():
     # WebSocket route
     app.add_routes([web.get('/ws', handle_websocket)])
     
+    # POST routes for uploads
+    app.add_routes([web.post('/upload', handle_upload)])
+    app.add_routes([web.post('/upload-favicon', handle_upload_favicon)])
+    
     # HTTP routes (catch-all for static files)
     app.add_routes([web.get('/', handle_request)])
     app.add_routes([web.get('/{path:.*}', handle_request)])
