@@ -177,7 +177,7 @@ async def handle_request(request):
     # Determine which file to serve
     if path == "/":
         file_path = DATA_DIR / "control.html"
-    elif path == "/assistant":
+    elif path == "/assistant" or path == "/assistant.html":
         file_path = DATA_DIR / "assistant.html"
     elif path == "/chat":
         file_path = DATA_DIR / "chat.html"
@@ -198,8 +198,8 @@ async def handle_request(request):
             content = f.read()
         
         # Inject Open Graph meta tags for assistant.html
-        if path == "/assistant":
-            og_title = "LumiK Assistant"
+        if path == "/assistant" or path == "/assistant.html":
+            og_title = "LumiK Experience"
             og_image = "https://lumik.onrender.com/favicon.ico"
             og_description = "Experiencia visual interactiva"
             
