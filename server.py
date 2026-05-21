@@ -92,12 +92,20 @@ async def handle_upload(request):
     if request.method == 'POST':
         try:
             reader = await request.multipart()
+            allowed_audio_ext = {'.mp3', '.wav', '.ogg', '.m4a'}
             
             async for field in reader:
                 if field.name == 'audio':
                     filename = field.filename
                     if not filename:
                         return web.Response(status=400, text="No filename provided")
+
+                    ext = Path(filename).suffix.lower()
+                    if ext not in allowed_audio_ext:
+                        return web.Response(
+                            status=400,
+                            text=f"Invalid audio file type. Allowed: {', '.join(sorted(allowed_audio_ext))}"
+                        )
                     
                     # Generate unique filename
                     import uuid
