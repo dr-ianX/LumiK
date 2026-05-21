@@ -315,7 +315,11 @@
     <div id="chat-toggle-btn">💬 Chat</div>
     <div id="clear-screen-btn" style="position:absolute; bottom:15px; left:80px; background:transparent; color:#fff; border:1px solid #fff; border-radius:5px; padding:8px 12px; z-index:60; cursor:pointer; opacity:1; transition:opacity 0.3s; font-size:12px;">🗑️ Limpiar</div>
     <div id="chat-input-container">
-      <input type="text" id="chat-input" placeholder="Escribe un mensaje..." maxlength="200" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+      <div id="reply-indicator" style="display:none; color:#aaa; font-size:12px; margin-bottom:5px;">
+        Respondiendo a: <span id="reply-to-user"></span> 
+        <span id="cancel-reply" style="cursor:pointer; color:#f00; margin-left:10px;">✕</span>
+      </div>
+      <input type="text" id="chat-input" placeholder="Escribe un mensaje..." maxlength="50" onkeypress="if(event.key === 'Enter') sendChatMessage()">
     </div>
     <div id="chat-send-btn">➤</div>
     <div id="controls-container" style="position:absolute; top:0; right:0; width:200px; height:100px; z-index:30;">
@@ -338,9 +342,14 @@
     const chatInputContainer = document.getElementById('chat-input-container');
     const chatInput = document.getElementById('chat-input');
     const chatSendBtn = document.getElementById('chat-send-btn');
+    const replyIndicator = document.getElementById('reply-indicator');
+    const replyToUser = document.getElementById('reply-to-user');
+    const cancelReply = document.getElementById('cancel-reply');
     let currentEffect = '';
     let chatVisible = true;
     let chatUsername = 'Usuario' + Math.floor(Math.random() * 1000);
+    let replyingTo = null; // Which message is being replied to
+    const MAX_MESSAGE_LENGTH = 50; // Limit characters for messages
     let ws;
     let particles = [];
     let particleInterval;
@@ -370,7 +379,7 @@
     const MAX_CHAT_BUBBLES = 15;
     
     // Función para crear burbuja de chat tipo Bejeweled
-    function createChatBubble(message, username) {
+    function createChatBubble(message, username, messageId = null) {
       // Remove oldest bubble if too many
       if (chatBubbles.length >= MAX_CHAT_BUBBLES) {
         const oldestBubble = chatBubbles.shift();
@@ -388,51 +397,56 @@
       const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
       bubble.classList.add(randomSize);
       
-      // Random neon color (Bejeweled style)
-      const colors = [
-        'linear-gradient(135deg, #ff0000, #ff6600)', // Red-Orange
-        'linear-gradient(135deg, #ff6600, #ffcc00)', // Orange-Yellow
-        'linear-gradient(135deg, #00ff00, #00ff88)', // Green
-        'linear-gradient(135deg, #00ffff, #0088ff)', // Cyan-Blue
-        'linear-gradient(135deg, #0088ff, #8800ff)', // Blue-Purple
-        'linear-gradient(135deg, #ff00ff, #ff0088)', // Magenta-Pink
-        'linear-gradient(135deg, #ffffff, #aaaaaa)', // White-Gray
-      ];
-      bubble.style.background = colors[Math.floor(Math.random() * colors.length)];
-      
-      // Set text (short message or emoji)
-      const displayText = message.length > 10 ? message.substring(0, 10) + '...' : message;
-      bubble.textContent = displayText;
-      bubble.title = `${username}: ${message}`;
+      // Random color
+      const hue = Math.floor(Math.random() * 360);
+      bubble.style.background = `hsla(${hue}, 70%, 50%, 0.8)`;
+      bubble.style.borderColor = `hsla(${hue}, 70%, 70%, 1)`;
       
       // Random position
       const maxX = window.innerWidth - 100;
       const maxY = window.innerHeight - 100;
-      bubble.style.left = Math.random() * maxX + 'px';
-      bubble.style.top = Math.random() * maxY + 'px';
+      const x = Math.random() * maxX;
+      const y = Math.random() * maxY;
+      bubble.style.left = x + 'px';
+      bubble.style.top = y + 'px';
+      
+      // Set text
+      bubble.textContent = message;
       
       // Random animation delay
       bubble.style.animationDelay = Math.random() * 2 + 's';
       
-      // Add to layer
+      // Add click event for reply
+      bubble.addEventListener('click', () => {
+        replyingTo = messageId || username;
+        replyToUser.textContent = username;
+        replyIndicator.style.display = 'block';
+        chatInput.focus();
+      });
+      
       chatLayer.appendChild(bubble);
       
-      // Track bubble
-      const bubbleObj = { element: bubble, message, username, createdAt: Date.now() };
+      const bubbleObj = {
+        element: bubble,
+        username: username,
+        message: message,
+        messageId: messageId || username + '_' + Date.now(),
+        createdAt: Date.now()
+      };
+      
       chatBubbles.push(bubbleObj);
       
-      // Remove after 30 seconds
+      // Auto-remove after 30 seconds
       setTimeout(() => {
-        if (bubble.parentNode) {
-          bubble.style.transition = 'opacity 1s, transform 1s';
-          bubble.style.opacity = '0';
-          bubble.style.transform = 'scale(0)';
-          setTimeout(() => {
-            if (bubble.parentNode) {
-              bubble.remove();
-              chatBubbles = chatBubbles.filter(b => b.element !== bubble);
-            }
-          }, 1000);
+        const index = chatBubbles.indexOf(bubbleObj);
+        if (index > -1) {
+          chatBubbles.splice(index, 1);
+          if (bubbleObj.element) {
+            bubbleObj.element.style.opacity = '0';
+            setTimeout(() => {
+              if (bubbleObj.element) bubbleObj.element.remove();
+            }, 1000);
+          }
         }
       }, 30000);
       
@@ -440,10 +454,10 @@
     }
     
     // Función para agregar mensaje de chat
-    function addChatMessage(username, message) {
-      chatMessages.push({ username, message, timestamp: Date.now() });
+    function addChatMessage(username, message, messageId = null) {
+      chatMessages.push({ username, message, messageId, timestamp: Date.now() });
       if (chatVisible) {
-        createChatBubble(message, username);
+        createChatBubble(message, username, messageId);
       }
     }
     
@@ -481,16 +495,31 @@
       const message = chatInput.value.trim();
       if (!message) return;
       
+      // Generate message ID
+      const messageId = chatUsername + '_' + Date.now();
+      
       // Add local bubble
-      addChatMessage(chatUsername, message);
+      addChatMessage(chatUsername, message, messageId);
       
       // Send via WebSocket to other clients
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(`CHAT:${chatUsername}|${message}`);
+        if (replyingTo) {
+          ws.send(`CHAT:${chatUsername}|${message}|REPLY:${replyingTo}`);
+        } else {
+          ws.send(`CHAT:${chatUsername}|${message}`);
+        }
       }
       
-      // Clear input
+      // Clear input and reply state
       chatInput.value = '';
+      cancelReply_();
+    }
+    
+    // Función para cancelar respuesta
+    function cancelReply_() {
+      replyingTo = null;
+      replyIndicator.style.display = 'none';
+      replyToUser.textContent = '';
     }
     
     // Función para limpiar pantalla
@@ -691,6 +720,9 @@
     // Evento para enviar chat
     chatSendBtn.addEventListener('click', sendChatMessage);
     
+    // Evento para cancelar respuesta
+    cancelReply.addEventListener('click', cancelReply_);
+    
     // Conectar WebSocket
     function connect() {
       try {
@@ -761,8 +793,17 @@
           }
           else if(msg.startsWith('CHAT:')) {
             const data = msg.substring(5).split('|');
-            if(data.length === 2) {
-              addChatMessage(data[0], data[1]);
+            if(data.length >= 2) {
+              const username = data[0];
+              const message = data[1];
+              let messageId = null;
+              
+              // Check if this is a reply
+              if(data.length >= 4 && data[2] === 'REPLY:') {
+                messageId = data[3];
+              }
+              
+              addChatMessage(username, message, messageId);
             }
           }
           else if(msg === 'CHAT_RESET:ALL') {
