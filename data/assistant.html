@@ -581,6 +581,7 @@
       assistantAudioElement = new Audio();
       assistantAudioElement.src = url;
       assistantAudioElement.volume = 1; // Full volume in assistant.html
+      assistantAudioElement.loop = true; // Loop the music infinitely
       
       // Initialize audio context for visualizer
       assistantAudioElement.addEventListener('play', () => {

@@ -265,6 +265,12 @@ async def handle_request(request):
             content_type = 'application/javascript'
         elif file_path.suffix == '.ico':
             content_type = 'image/x-icon'
+        elif file_path.suffix in ['.png']:
+            content_type = 'image/png'
+        elif file_path.suffix in ['.jpg', '.jpeg']:
+            content_type = 'image/jpeg'
+        elif file_path.suffix in ['.webp']:
+            content_type = 'image/webp'
         elif file_path.suffix in ['.mp3', '.wav', '.ogg', '.m4a']:
             content_type = 'audio/mpeg'
         
