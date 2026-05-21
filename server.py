@@ -58,7 +58,8 @@ async def handle_websocket(request):
                 elif data.startswith('TEXT:'):
                     current_state['text'] = data
                 elif data.startswith('EVENT_INFO:'):
-                    current_state['event_info'] = data
+                    # Store only the JSON part without the prefix
+                    current_state['event_info'] = data.split(':', 1)[1]
                 elif data.startswith('CHAT:'):
                     # Add chat message to state
                     current_state['chat_messages'].append(data)
@@ -262,20 +263,28 @@ async def handle_request(request):
         
         # Set content type based on file extension
         content_type = 'text/html'
-        if file_path.suffix == '.css':
+        # Get the actual file extension (handle UUID filenames)
+        file_suffix = file_path.suffix.lower()
+        if file_suffix == '.css':
             content_type = 'text/css'
-        elif file_path.suffix == '.js':
+        elif file_suffix == '.js':
             content_type = 'application/javascript'
-        elif file_path.suffix == '.ico':
+        elif file_suffix == '.ico':
             content_type = 'image/x-icon'
-        elif file_path.suffix in ['.png']:
+        elif file_suffix == '.png':
             content_type = 'image/png'
-        elif file_path.suffix in ['.jpg', '.jpeg']:
+        elif file_suffix in ['.jpg', '.jpeg']:
             content_type = 'image/jpeg'
-        elif file_path.suffix in ['.webp']:
+        elif file_suffix == '.webp':
             content_type = 'image/webp'
-        elif file_path.suffix in ['.mp3', '.wav', '.ogg', '.m4a']:
+        elif file_suffix == '.mp3':
             content_type = 'audio/mpeg'
+        elif file_suffix == '.wav':
+            content_type = 'audio/wav'
+        elif file_suffix == '.ogg':
+            content_type = 'audio/ogg'
+        elif file_suffix == '.m4a':
+            content_type = 'audio/mp4'
         
         response = web.Response(text=content, content_type=content_type)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
