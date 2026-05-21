@@ -245,11 +245,12 @@ async def handle_request(request):
             elif file_path.suffix.lower() == '.ico':
                 content_type = 'image/x-icon'
 
-            return web.FileResponse(
-                path=file_path,
-                headers={'Cache-Control': 'no-cache, no-store, must-revalidate'},
-                content_type=content_type
-            )
+            response = web.FileResponse(path=file_path)
+            response.content_type = content_type
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         else:
             # Serve text file
             with open(file_path, 'r', encoding='utf-8') as f:
