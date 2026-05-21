@@ -72,14 +72,9 @@ async def handle_websocket(request):
                 
                 # Echo message to all connected clients
                 if connected_clients:
-                    # For EVENT_INFO, ensure it has the prefix
-                    if data.startswith('EVENT_INFO:'):
-                        # Reconstruct the message with prefix
-                        message_to_send = 'EVENT_INFO:' + data.split(':', 1)[1] if ':' in data else data
-                    else:
-                        message_to_send = data
+                    # Send the original message as-is (it already has the prefix)
                     await asyncio.gather(
-                        *[client.send_str(message_to_send) for client in connected_clients if client != ws]
+                        *[client.send_str(data) for client in connected_clients if client != ws]
                     )
             elif msg.type == WSMsgType.ERROR:
                 print(f"WebSocket error: {ws.exception()}")
