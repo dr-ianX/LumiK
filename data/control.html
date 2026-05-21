@@ -1414,14 +1414,19 @@
         
         data.files.forEach(file => {
           const option = document.createElement('option');
-          option.value = file;
-          option.textContent = file;
+          option.value = file.url;
+          option.textContent = `${file.name} (${file.source})`;
+          option.dataset.name = file.name;
+          option.dataset.source = file.source;
           select.appendChild(option);
         });
-        
+
         select.addEventListener('change', function() {
-          const file = this.value;
-          if (!file) return;
+          const fileUrl = this.value;
+          if (!fileUrl) return;
+          
+          const selectedOption = this.options[this.selectedIndex];
+          const fileName = selectedOption?.dataset?.name || fileUrl.split('/').pop();
           
           // Clean up previous audio
           if (audioElement) {
@@ -1431,13 +1436,12 @@
           
           // Create new audio element with local file URL
           audioElement = new Audio();
-          // Use external URL for music to avoid OnRender file size limits
-          audioElement.src = 'https://github.com/dr-ianX/LumiK/raw/master/music/' + file;
+          audioElement.src = fileUrl;
           audioElement.volume = 0; // Muted - audio plays but no sound in control.html
           audioElement.loop = true; // Loop the music
           
-          document.getElementById('nowPlaying').textContent = '🎵 ' + file;
-          statusDiv.textContent = "Archivo cargado: " + file;
+          document.getElementById('nowPlaying').textContent = '🎵 ' + fileName;
+          statusDiv.textContent = "Archivo cargado: " + fileName;
         });
       } catch (error) {
         console.error('Error loading music files:', error);
@@ -1451,16 +1455,19 @@
         return;
       }
       
+      audioElement.currentTime = 0; // Reinicia al inicio siempre
       audioElement.play();
       statusDiv.textContent = "Reproduciendo música";
       
-      // Send URL to assistant.html via WebSocket
+      // Send URL and explicit play/reset commands to assistant.html
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send('AUDIO_URL:' + audioElement.src);
+        ws.send('AUDIO_SEEK_START');
+        ws.send('AUDIO_PLAY');
       }
       
       // Initialize audio context on user interaction
-      audioElement.addEventListener('play', initMusicVisualizer);
+      audioElement.addEventListener('play', initMusicVisualizer, { once: true });
       
       setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
     }
@@ -1468,6 +1475,9 @@
     function pauseMusic() {
       if (!audioElement) return;
       audioElement.pause();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('AUDIO_PAUSE');
+      }
       statusDiv.textContent = "Música pausada";
       setTimeout(() => statusDiv.textContent = "Conectado al servidor", 2000);
     }
@@ -1482,8 +1492,12 @@
         musicVisualizerAnimationId = null;
       }
       
-      if (musicVisualizerCtx) {
+      if (musicVisualizerCtx && musicVisualizerCanvas) {
         musicVisualizerCtx.clearRect(0, 0, musicVisualizerCanvas.width, musicVisualizerCanvas.height);
+      }
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('AUDIO_STOP');
       }
       
       statusDiv.textContent = "Música detenida";
