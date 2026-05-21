@@ -123,6 +123,7 @@ async def handle_upload_favicon(request):
 
 async def handle_request(request):
     path = request.path
+    print(f"Request received: {path}, Method: {request.method}")
     
     # Handle upload endpoint - must be before file serving
     if path == "/upload":
@@ -130,6 +131,7 @@ async def handle_request(request):
     
     # Handle favicon upload endpoint
     if path == "/upload-favicon":
+        print("Routing to handle_upload_favicon")
         return await handle_upload_favicon(request)
     
     # Determine which file to serve
