@@ -1431,7 +1431,8 @@
           
           // Create new audio element with local file URL
           audioElement = new Audio();
-          audioElement.src = '/music/' + file;
+          // Use external URL for music to avoid OnRender file size limits
+          audioElement.src = 'https://github.com/dr-ianX/LumiK/raw/master/music/' + file;
           audioElement.volume = 0; // Muted - audio plays but no sound in control.html
           audioElement.loop = true; // Loop the music
           
