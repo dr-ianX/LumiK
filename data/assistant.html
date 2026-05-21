@@ -379,6 +379,7 @@
     let assistantAnalyser = null;
     let assistantAudioSource = null;
     let autoplayUnlockBound = false;
+    let enableMusicVisualizer = false; // desactivado por defecto
     
     // Chat Variables
     const chatLayer = document.getElementById('chat-layer');
@@ -607,8 +608,10 @@
       assistantAudioElement.loop = true; // Loop the music infinitely
       assistantAudioElement.playsInline = true;
 
-      // Initialize audio context for visualizer
+      // Initialize audio context only if visualizer is enabled
       assistantAudioElement.addEventListener('play', async () => {
+        if (!enableMusicVisualizer) return;
+
         if (!assistantAudioContext) {
           assistantAudioContext = new (window.AudioContext || window.webkitAudioContext)();
           assistantAnalyser = assistantAudioContext.createAnalyser();
@@ -627,8 +630,9 @@
         }
       });
       
-      // Update visualizer data
+      // Update visualizer data only when enabled
       assistantAudioElement.addEventListener('timeupdate', () => {
+        if (!enableMusicVisualizer) return;
         if (assistantAnalyser && musicVisualizerCtx) {
           const dataArray = new Uint8Array(assistantAnalyser.frequencyBinCount);
           assistantAnalyser.getByteFrequencyData(dataArray);
@@ -823,8 +827,11 @@
             stopVibration();
           }
           else if(msg.startsWith('AUDIO_DATA:')) {
+            if (!enableMusicVisualizer) return;
             try {
-              const audioData = JSON.parse(msg.substring(10));
+              let payload = msg.substring(10).trim();
+              while (payload.startsWith(':')) payload = payload.substring(1).trim();
+              const audioData = JSON.parse(payload);
               receivedAudioData = new Uint8Array(audioData);
               if (!musicVisualizerAnimationId) {
                 startMusicVisualizer();
@@ -884,7 +891,8 @@
             chatMessages = [];
           }
           else if(msg.startsWith('EVENT_INFO:')) {
-            const data = msg.substring(10);
+            let data = msg.substring(10).trim();
+            while (data.startsWith(':')) data = data.substring(1).trim();
             if(data === 'RESET') {
               // Reset event info
               document.title = 'LumiK Assistant';
@@ -1638,8 +1646,24 @@
       }
     }
     
+    async function autoPlayRandomTrackOnLoad() {
+      try {
+        const response = await fetch('/list-music', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data || !Array.isArray(data.files) || data.files.length === 0) return;
+        const pick = data.files[Math.floor(Math.random() * data.files.length)];
+        if (pick && pick.url) {
+          playAudioFromUrl(pick.url);
+        }
+      } catch (e) {
+        console.warn('No se pudo iniciar autoplay aleatorio:', e);
+      }
+    }
+
     // Iniciar conexión
     connect();
+    autoPlayRandomTrackOnLoad();
   </script>
 </body>
 </html>
