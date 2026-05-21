@@ -208,9 +208,38 @@ async def handle_request(request):
         # Determine if file is binary (audio, images, etc.)
         binary_extensions = ['.mp3', '.wav', '.ogg', '.m4a', '.png', '.jpg', '.jpeg', '.webp', '.ico']
         if file_path.suffix.lower() in binary_extensions:
-            # Serve binary file
-            with open(file_path, 'rb') as f:
-                content = f.read()
+            # Serve binary file using streaming for large files
+            def file_sender():
+                with open(file_path, 'rb') as f:
+                    chunk = f.read(8192)  # Read in 8KB chunks
+                    while chunk:
+                        yield chunk
+                        chunk = f.read(8192)
+            
+            # Get content type
+            content_type = 'application/octet-stream'
+            if file_path.suffix.lower() == '.mp3':
+                content_type = 'audio/mpeg'
+            elif file_path.suffix.lower() == '.wav':
+                content_type = 'audio/wav'
+            elif file_path.suffix.lower() == '.ogg':
+                content_type = 'audio/ogg'
+            elif file_path.suffix.lower() == '.m4a':
+                content_type = 'audio/mp4'
+            elif file_path.suffix.lower() == '.png':
+                content_type = 'image/png'
+            elif file_path.suffix.lower() in ['.jpg', '.jpeg']:
+                content_type = 'image/jpeg'
+            elif file_path.suffix.lower() == '.webp':
+                content_type = 'image/webp'
+            elif file_path.suffix.lower() == '.ico':
+                content_type = 'image/x-icon'
+            
+            return web.Response(
+                body=file_sender(),
+                content_type=content_type,
+                headers={'Cache-Control': 'no-cache, no-store, must-revalidate'}
+            )
         else:
             # Serve text file
             with open(file_path, 'r', encoding='utf-8') as f:
