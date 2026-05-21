@@ -848,17 +848,26 @@
               eventDisplay.style.display = 'none';
             } else {
               try {
+                // Handle case where data might be empty or malformed
+                if (!data || data.trim() === '') {
+                  console.warn('Empty EVENT_INFO data received');
+                  return;
+                }
                 const eventInfo = JSON.parse(data);
-                if(eventInfo.name) {
+                if(eventInfo.name && eventInfo.name !== '') {
                   document.title = eventInfo.name + ' - LumiK';
                   eventName.textContent = eventInfo.name;
                   eventDisplay.style.display = 'flex';
                 }
-                if(eventInfo.favicon) {
+                if(eventInfo.favicon && eventInfo.favicon !== '') {
                   const favicon = document.querySelector('link[rel="icon"]');
                   if(favicon) favicon.href = eventInfo.favicon;
                   eventFavicon.src = eventInfo.favicon;
                   eventDisplay.style.display = 'flex';
+                }
+                if(eventInfo.description && eventInfo.description !== '') {
+                  // Store description for meta tags if needed
+                  console.log('Event description:', eventInfo.description);
                 }
                 if(eventInfo.timestamp) {
                   // Set timeout to reset after 24 hours
@@ -870,7 +879,7 @@
                   }, 24 * 60 * 60 * 1000); // 24 hours
                 }
               } catch(e) {
-                console.error('Error parsing EVENT_INFO:', e);
+                console.error('Error parsing EVENT_INFO:', e, 'Data:', data);
               }
             }
           }
