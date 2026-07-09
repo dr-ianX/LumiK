@@ -180,6 +180,17 @@
       100% { background-position: 100% 100%; }
     }
     
+    @keyframes arPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    
+    .ar-jungle-small {
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+      animation: none !important;
+    }
+    
     /* FX */
     .pulse { 
       background: radial-gradient(circle, rgba(255,0,0,0.8), rgba(0,0,0,0));
@@ -341,10 +352,10 @@
       <span id="event-name" style="color:#fff; font-size:16px; font-weight:bold;"></span>
     </div>
     <div id="chat-layer"></div>
-    <button id="audio-unlock-btn" type="button">🔊 Toca la pantalla para activar la música</button>
+    <button id="audio-unlock-btn" type="button">Touch the screen to start AR Experience or do not touch it to be part of the light system on real time during the night. Your cellphone will be syncronized and you'll get some crazy visuals during the show. You can CHAT with the assistants</button>
     <div id="chat-toggle-btn">💬 Chat</div>
     <div id="clear-screen-btn" style="position:absolute; bottom:15px; left:80px; background:transparent; color:#fff; border:1px solid #fff; border-radius:5px; padding:8px 12px; z-index:60; cursor:pointer; opacity:1; transition:opacity 0.3s; font-size:12px;">🗑️ Limpiar</div>
-    <a id="ar-jungle-btn" href="https://bit.ly/LumiKJungleExperience" target="_blank" style="position:absolute; bottom:15px; left:170px; background:rgba(0,255,136,0.7); color:#000; border:1px solid #00ff88; border-radius:5px; padding:8px 12px; z-index:60; cursor:pointer; opacity:1; transition:opacity 0.3s; font-size:12px; text-decoration:none; font-weight:bold;">🌴 AR Jungle</a>
+    <a id="ar-jungle-btn" href="https://bit.ly/LumiKJungleExperience" target="_blank" style="position:absolute; bottom:15px; left:170px; background:rgba(0,255,136,0.7); color:#000; border:1px solid #00ff88; border-radius:5px; padding:12px 20px; z-index:60; cursor:pointer; opacity:1; transition:all 0.3s; font-size:14px; text-decoration:none; font-weight:bold; animation: arPulse 8s ease-in-out infinite;">🌴 AR Jungle</a>
     <div id="chat-input-container">
       <div id="reply-indicator" style="display:none; color:#aaa; font-size:12px; margin-bottom:5px;">
         Respondiendo a: <span id="reply-to-user"></span> 
@@ -380,6 +391,7 @@
     const eventFavicon = document.getElementById('event-favicon');
     const eventName = document.getElementById('event-name');
     const audioUnlockBtn = document.getElementById('audio-unlock-btn');
+    const arJungleBtn = document.getElementById('ar-jungle-btn');
     let currentEffect = '';
     let chatVisible = true;
     let chatUsername = 'Usuario' + Math.floor(Math.random() * 1000);
@@ -1714,17 +1726,37 @@
       }
     }
 
-    // Botón de desbloqueo de audio (visible breve, luego se oculta para no estorbar)
+    // Botón de información AR (visible más tiempo, luego se oculta)
     if (audioUnlockBtn) {
       audioUnlockBtn.addEventListener('click', forceUnlockAudioFromUserGesture);
       setTimeout(() => {
         hideAudioUnlockButton();
-      }, 6000);
+      }, 30000); // 30 segundos en lugar de 6
+    }
+    
+    // Botón AR Jungle - se hace pequeño después de tiempo sin interacción
+    let arInteractionTimeout;
+    if (arJungleBtn) {
+      // Reset timeout en interacción
+      arJungleBtn.addEventListener('mouseenter', () => {
+        clearTimeout(arInteractionTimeout);
+        arJungleBtn.classList.remove('ar-jungle-small');
+      });
+      arJungleBtn.addEventListener('mouseleave', () => {
+        arInteractionTimeout = setTimeout(() => {
+          arJungleBtn.classList.add('ar-jungle-small');
+        }, 15000); // 15 segundos sin interacción
+      });
+      
+      // Timeout inicial
+      arInteractionTimeout = setTimeout(() => {
+        arJungleBtn.classList.add('ar-jungle-small');
+      }, 20000); // 20 segundos iniciales
     }
 
     // Iniciar conexión
     connect();
-    autoPlayRandomTrackOnLoad();
+    // autoPlayRandomTrackOnLoad(); // Desactivado - no reproducir música automáticamente
   </script>
 </body>
 </html>
